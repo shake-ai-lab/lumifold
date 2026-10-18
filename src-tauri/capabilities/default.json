@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "メインウィンドウの権限。画面が使うのは、Rust からの通知の受信と、ファイルを開く・保存するダイアログだけ",
+  "windows": ["main"],
+  "permissions": [
+    "core:event:default",
+    "dialog:allow-open",
+    "dialog:allow-save"
+  ]
+}

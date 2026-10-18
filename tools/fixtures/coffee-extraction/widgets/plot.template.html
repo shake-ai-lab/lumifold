@@ -1,0 +1,139 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>抽出チャート計算機</title>
+<style>
+:root{--ink:#2B211C;--muted:#7D6E64;--brown:#4A2C1D;--accent:#B5651D;--ideal:#2E7D6B;--cream:#F5EEE6;--line:#DCCFC2}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:#fff;color:var(--ink);font:15px Meiryo,'Yu Gothic',sans-serif;overflow:hidden}
+button,input{font:inherit}
+main{height:100%;display:grid;grid-template-columns:260px 1fr;gap:18px;padding:14px 16px}
+.controls{display:flex;flex-direction:column;gap:8px;min-width:0}
+label{display:grid;grid-template-columns:1fr auto;align-items:baseline;row-gap:2px}
+label span{font-weight:bold;color:var(--brown)}
+output{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:bold}
+input[type=range]{grid-column:1/-1;width:100%;margin:2px 0;accent-color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:5px}
+.presets button{border:1px solid var(--line);background:#fff;color:var(--brown);padding:4px 7px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap}
+.presets button:hover{background:var(--cream)}
+.presets button[aria-pressed=true]{background:var(--brown);border-color:var(--brown);color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.readout{margin-top:auto;border-top:1px solid var(--line);padding-top:10px}
+.readout .k{font-size:13px;color:var(--muted)}
+.readout b{display:block;font-size:34px;line-height:1.15;color:var(--accent);font-variant-numeric:tabular-nums}
+.readout .calc{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.verdict{background:var(--cream);border-radius:8px;padding:9px 12px;min-height:72px}
+.verdict b{display:block;font-size:17px;color:var(--accent)}
+.verdict.ideal{background:var(--ideal);color:#fff}.verdict.ideal b{color:#fff}
+.verdict span{font-size:13px}
+.chart{min-width:0;min-height:0}
+svg{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;user-select:none}
+svg text{font-family:Meiryo,'Yu Gothic',sans-serif}
+@media(max-width:640px){main{grid-template-columns:1fr;grid-template-rows:auto 1fr;overflow:auto}.readout{margin-top:0}}
+</style></head><body>
+<main>
+ <section class="controls" aria-label="入力">
+  <label for="dose"><span>粉の量</span><output id="o-dose" for="dose"></output><input id="dose" type="range" min="8" max="30" step="0.5"></label>
+  <label for="bev"><span>できあがり量</span><output id="o-bev" for="bev"></output><input id="bev" type="range" min="100" max="500" step="1"></label>
+  <label for="tds"><span>濃度(TDS)</span><output id="o-tds" for="tds"></output><input id="tds" type="range" min="0.8" max="1.8" step="0.01"></label>
+  <div class="presets" aria-label="例"><button data-preset="base">基本レシピ</button><button data-preset="sour">酸っぱかった</button><button data-preset="bitter">苦かった</button></div>
+  <div class="readout"><span class="k">抽出率</span><b id="ey"></b><span class="calc" id="calc"></span></div>
+  <div class="verdict" id="verdict" aria-live="polite"><b id="v-head"></b><span id="v-desc"></span></div>
+ </section>
+ <section class="chart"><svg id="chart" viewBox="0 0 540 450" role="img"></svg></section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const LIMITS = { dose: [8, 30, 0.5], bev: [100, 500, 1], tds: [0.8, 1.8, 0.01] };
+const PRESETS = { base: { dose: 15, bev: 210, tds: 1.35 }, sour: { dose: 15, bev: 210, tds: 1.2 }, bitter: { dose: 15, bev: 270, tds: 1.3 } };
+// 行: 濃い → 薄い、列: 抽出不足 → 過多(スライド 2 のチャートと同じ)
+const CELLS = [
+  [["濃い・酸っぱい", "細かく挽き、湯を増やす"], ["濃すぎる", "湯を 20〜30g 増やす"], ["濃い・苦い", "粗く挽き、湯を増やす"]],
+  [["酸っぱい・物足りない", "1 段階細かく挽く・湯温を上げる"], ["ちょうどいい", "このレシピを記録しておこう"], ["苦い・渋い", "1 段階粗く挽く・湯温を下げる"]],
+  [["薄い・酸っぱい", "細かく挽き、粉を増やす"], ["薄い・水っぽい", "粉を 1〜2g 増やす"], ["薄い・苦い", "粗く挽き、粉を増やす"]],
+];
+const EY = [14, 18, 22, 26], TDS = [1.7, 1.35, 1.15, 0.9];
+const L = 58, R = 526, T = 34, B = 396;
+const px = ey => L + (ey - EY[0]) / (EY[3] - EY[0]) * (R - L);
+const py = t => B - (t - TDS[3]) / (TDS[0] - TDS[3]) * (B - T);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const snap = (key, v) => { const [lo, hi, st] = LIMITS[key]; return Number(clamp(Math.round((v - lo) / st) * st + lo, lo, hi).toFixed(2)); };
+const cellOf = (ey, tds) => [tds > 1.35 ? 0 : tds >= 1.15 ? 1 : 2, ey < 18 ? 0 : ey <= 22 ? 1 : 2];
+
+let values = { ...PRESETS.base };
+const svg = $("#chart"), NS = "http://www.w3.org/2000/svg";
+const el = (name, attrs, text) => { const n = document.createElementNS(NS, name); for (const k in attrs) n.setAttribute(k, attrs[k]); if (text != null) n.textContent = text; svg.append(n); return n; };
+
+// 静的な部分: 9 マス、境界、目盛り、軸
+const zones = [];
+for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+  const x0 = px(EY[c]), x1 = px(EY[c + 1]), y0 = py(TDS[r]), y1 = py(TDS[r + 1]), ideal = r === 1 && c === 1;
+  const rect = el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, fill: ideal ? "#2E7D6B" : "#fff", "fill-opacity": ideal ? 0.16 : 1 });
+  const label = el("text", { x: (x0 + x1) / 2, y: (y0 + y1) / 2 + 4, "text-anchor": "middle", "font-size": 12, fill: ideal ? "#2E7D6B" : "#7D6E64", "font-weight": ideal ? "bold" : "normal" }, CELLS[r][c][0]);
+  zones.push({ r, c, rect, label, ideal });
+}
+el("rect", { x: px(18), y: py(1.35), width: px(22) - px(18), height: py(1.15) - py(1.35), fill: "none", stroke: "#2E7D6B", "stroke-width": 2 });
+for (const v of [18, 22]) el("line", { x1: px(v), x2: px(v), y1: T, y2: B, stroke: "#DCCFC2", "stroke-dasharray": "4 4" });
+for (const v of [1.15, 1.35]) el("line", { x1: L, x2: R, y1: py(v), y2: py(v), stroke: "#DCCFC2", "stroke-dasharray": "4 4" });
+el("rect", { x: L, y: T, width: R - L, height: B - T, fill: "none", stroke: "#B9A99B" });
+for (const v of EY) el("text", { x: px(v), y: B + 18, "text-anchor": "middle", "font-size": 12, fill: "#7D6E64" }, v + "%");
+for (const v of TDS) el("text", { x: L - 6, y: py(v) + 4, "text-anchor": "end", "font-size": 12, fill: "#7D6E64" }, v.toFixed(2) + "%");
+el("text", { x: (L + R) / 2, y: B + 42, "text-anchor": "middle", "font-size": 13, "font-weight": "bold", fill: "#4A2C1D" }, "抽出率 →");
+el("text", { x: 8, y: 16, "font-size": 13, "font-weight": "bold", fill: "#4A2C1D" }, "↑ 濃度");
+const halo = el("circle", { r: 18, fill: "#B5651D", "fill-opacity": 0.18 });
+const dot = el("circle", { r: 9, fill: "#B5651D", stroke: "#fff", "stroke-width": 3 });
+
+let publishing = false;
+function render() {
+  const { dose, bev, tds } = values, ey = tds * bev / dose;
+  $("#dose").value = dose; $("#bev").value = bev; $("#tds").value = tds;
+  $("#o-dose").textContent = dose.toFixed(1) + " g";
+  $("#o-bev").textContent = Math.round(bev) + " g";
+  $("#o-tds").textContent = tds.toFixed(2) + " %";
+  $("#ey").textContent = ey.toFixed(1) + "%";
+  $("#calc").textContent = `${tds.toFixed(2)} × ${Math.round(bev)} ÷ ${dose.toFixed(1)}`;
+  const [r, c] = cellOf(ey, tds), inside = ey >= EY[0] && ey <= EY[3] && tds >= TDS[3] && tds <= TDS[0];
+  for (const z of zones) {
+    const here = z.r === r && z.c === c;
+    if (!z.ideal) z.rect.setAttribute("fill", here ? "#F5EEE6" : "#fff");
+    z.rect.setAttribute("fill-opacity", z.ideal ? (here ? 0.3 : 0.16) : 1);
+    z.label.setAttribute("font-weight", here || z.ideal ? "bold" : "normal");
+  }
+  const x = px(clamp(ey, EY[0], EY[3])), y = py(clamp(tds, TDS[3], TDS[0]));
+  for (const n of [halo, dot]) { n.setAttribute("cx", x); n.setAttribute("cy", y); }
+  dot.setAttribute("fill", inside ? "#B5651D" : "#fff"); dot.setAttribute("stroke", inside ? "#fff" : "#B5651D");
+  const [head, desc] = CELLS[r][c];
+  $("#v-head").textContent = head + (inside ? "" : "(チャートの外)");
+  $("#v-desc").textContent = desc;
+  $("#verdict").classList.toggle("ideal", r === 1 && c === 1);
+  svg.setAttribute("aria-label", `抽出率 ${ey.toFixed(1)}%、濃度 ${tds.toFixed(2)}%: ${head}`);
+  for (const b of document.querySelectorAll("[data-preset]")) {
+    const p = PRESETS[b.dataset.preset];
+    b.setAttribute("aria-pressed", String(Object.keys(p).every(k => Math.abs(p[k] - values[k]) < 1e-9)));
+  }
+  if (publishing && parent !== window) parent.postMessage({ type: "deck-studio:widget-state", state: { values } }, "*");
+}
+
+for (const key of Object.keys(LIMITS)) {
+  const [lo, hi, st] = LIMITS[key], input = $("#" + key);
+  input.min = lo; input.max = hi; input.step = st;
+  input.addEventListener("input", () => { values[key] = Number(input.value); render(); });
+}
+for (const b of document.querySelectorAll("[data-preset]")) b.addEventListener("click", () => { values = { ...PRESETS[b.dataset.preset] }; render(); });
+
+// チャートをドラッグ: 濃度はそのまま、抽出率は粉を固定してできあがり量で合わせる
+function fromPointer(event) {
+  const pt = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse());
+  const ey = EY[0] + (clamp(pt.x, L, R) - L) / (R - L) * (EY[3] - EY[0]);
+  const tds = snap("tds", TDS[3] + (B - clamp(pt.y, T, B)) / (B - T) * (TDS[0] - TDS[3]));
+  values = { ...values, tds, bev: snap("bev", ey * values.dose / tds) };
+  render();
+}
+svg.addEventListener("pointerdown", e => { svg.setPointerCapture(e.pointerId); fromPointer(e); });
+svg.addEventListener("pointermove", e => { if (svg.hasPointerCapture(e.pointerId)) fromPointer(e); });
+
+window.addEventListener("message", e => {
+  if (e.source !== parent || e.data?.type !== "deck-studio:widget-restore") return;
+  const s = e.data.state?.values;
+  if (s && typeof s === "object") for (const key of Object.keys(LIMITS)) if (typeof s[key] === "number" && Number.isFinite(s[key])) values[key] = snap(key, s[key]);
+  const enabled = publishing; publishing = false; render(); publishing = enabled;
+});
+render(); publishing = true;
+if (parent !== window) parent.postMessage({ type: "deck-studio:widget-ready" }, "*");
+</script></body></html>

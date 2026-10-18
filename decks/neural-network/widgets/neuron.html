@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ニューロンを触る</title>
+<style>
+/* ウィジェット共通のサイバー配色。各 HTML はこの内容を <style> に埋め込む(自己完結のため、ビルド時に差し込む) */
+:root {
+  --bg: #0B0F1A; --panel: #121A2B; --panel2: #182238; --text: #E6F1FF; --muted: #7C8AA5;
+  --cyan: #00E5FF; --mag: #FF2BD6; --lime: #B6FF3C; --amber: #FFB341; --red: #FF4D6D;
+  --line: rgba(0, 229, 255, 0.22); --grid: rgba(0, 229, 255, 0.08);
+}
+html, body { margin: 0; height: 100%; font-family: Meiryo, "Yu Gothic UI", sans-serif; color: var(--text); background: var(--bg); overflow: hidden; }
+label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+label span b { color: var(--cyan); font-size: 14px; }
+select, button { font: inherit; font-size: 13px; }
+select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--text); }
+input[type=range] { width: 100%; accent-color: var(--cyan); }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+button { padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--cyan); cursor: pointer; }
+button.primary { background: var(--cyan); color: #061018; font-weight: 700; border-color: var(--cyan); }
+button:hover { filter: brightness(1.15); }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.stats div { font-size: 11px; color: var(--muted); }
+.stats b { display: block; font-size: 20px; color: var(--cyan); }
+.stats b.v { color: var(--mag); }
+.hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 0; }
+.msg { font-size: 12px; font-weight: 700; min-height: 1.5em; color: var(--lime); }
+.msg.bad { color: var(--red); }
+.cap { font-size: 11px; color: var(--muted); margin: -6px 0 0 4px; }
+canvas.plot { background: #0E1424; border: 1px solid var(--line); border-radius: 6px; }
+
+
+  .wrap { display:flex; height:100%; gap:14px; padding:12px; box-sizing:border-box; }
+  .controls { width:220px; flex:none; display:flex; flex-direction:column; gap:8px; }
+  .formula { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px; font-size:13px; line-height:1.7; }
+  .formula b { color:var(--cyan); }
+  .formula .out { font-size:22px; color:var(--lime); }
+  #map { flex:none; border-radius:6px; border:1px solid var(--line); cursor:crosshair; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label><span>重み w₁ = <b id="w1v">1.0</b></span><input id="w1" type="range" min="-3" max="3" step="0.1" value="1"></label>
+    <label><span>重み w₂ = <b id="w2v">1.0</b></span><input id="w2" type="range" min="-3" max="3" step="0.1" value="1"></label>
+    <label><span>バイアス b = <b id="bv">0.0</b></span><input id="b" type="range" min="-3" max="3" step="0.1" value="0"></label>
+    <label>活性化関数 f
+      <select id="act"><option value="sigmoid">Sigmoid</option><option value="relu">ReLU</option><option value="tanh">tanh</option><option value="linear">なし(線形)</option></select>
+    </label>
+    <div class="formula">
+      入力 (x₁, x₂) = (<b id="x1">0.5</b>, <b id="x2">0.5</b>)<br>
+      z = w₁x₁ + w₂x₂ + b = <b id="z">1.0</b><br>
+      y = f(z) = <span class="out" id="y">0.73</span>
+    </div>
+    <p class="hint">地図は入力ごとの出力 y(マゼンタ = 低、シアン = 高)。白い線は z = 0 の境界、矢印は重みの向き。クリックで入力点を動かせる。</p>
+  </div>
+  <canvas id="map"></canvas>
+</div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const cv = $("map");
+  let px = 0.5, py = 0.5;
+  const f = { sigmoid: (z) => 1 / (1 + Math.exp(-z)), relu: (z) => Math.max(0, z), tanh: Math.tanh, linear: (z) => z };
+  const range = { sigmoid: [0, 1], relu: [0, 3], tanh: [-1, 1], linear: [-3, 3] };
+  const R = 1.5;
+  const LO = [255, 43, 214], MID = [14, 20, 36], HI = [0, 229, 255];
+  function layout() {
+    const wrap = document.querySelector(".wrap");
+    const s = Math.max(100, Math.min(wrap.clientHeight - 24, wrap.clientWidth - 24 - 220 - 14));
+    cv.width = cv.height = s; cv.style.width = cv.style.height = s + "px";
+  }
+  function draw() {
+    const w1 = +$("w1").value, w2 = +$("w2").value, b = +$("b").value, act = $("act").value;
+    $("w1v").textContent = w1.toFixed(1); $("w2v").textContent = w2.toFixed(1); $("bv").textContent = b.toFixed(1);
+    const ctx = cv.getContext("2d"), S = cv.width, G = 60, cell = S / G, [lo, hi] = range[act];
+    for (let gy = 0; gy < G; gy++) for (let gx = 0; gx < G; gx++) {
+      const x1 = ((gx + 0.5) / G * 2 - 1) * R, x2 = (1 - (gy + 0.5) / G * 2) * R;
+      const y = f[act](w1 * x1 + w2 * x2 + b);
+      const t = Math.max(0, Math.min(1, (y - lo) / (hi - lo)));
+      const a = t < 0.5 ? LO : MID, c = t < 0.5 ? MID : HI, u = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+      ctx.fillStyle = `rgb(${a[0] + (c[0] - a[0]) * u | 0},${a[1] + (c[1] - a[1]) * u | 0},${a[2] + (c[2] - a[2]) * u | 0})`;
+      ctx.fillRect(gx * cell, gy * cell, cell + 0.5, cell + 0.5);
+    }
+    const toPx = (x, y) => [(x / R + 1) / 2 * S, (1 - y / R) / 2 * S];
+    ctx.strokeStyle = "rgba(230,241,255,0.18)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(S / 2, 0); ctx.lineTo(S / 2, S); ctx.moveTo(0, S / 2); ctx.lineTo(S, S / 2); ctx.stroke();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.beginPath();
+    if (Math.abs(w2) > 1e-6) { const y = (x) => (-b - w1 * x) / w2; const [ax, ay] = toPx(-R, y(-R)), [bx, by] = toPx(R, y(R)); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); }
+    else if (Math.abs(w1) > 1e-6) { const x = -b / w1; const [ax, ay] = toPx(x, -R), [bx, by] = toPx(x, R); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); }
+    ctx.stroke();
+    const [ox, oy] = toPx(0, 0), [wx, wy] = toPx(w1 * 0.4, w2 * 0.4);
+    ctx.strokeStyle = "#B6FF3C"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(wx, wy); ctx.stroke();
+    const ang = Math.atan2(wy - oy, wx - ox);
+    ctx.fillStyle = "#B6FF3C"; ctx.beginPath(); ctx.moveTo(wx, wy);
+    ctx.lineTo(wx - 10 * Math.cos(ang - 0.4), wy - 10 * Math.sin(ang - 0.4)); ctx.lineTo(wx - 10 * Math.cos(ang + 0.4), wy - 10 * Math.sin(ang + 0.4)); ctx.fill();
+    const [qx, qy] = toPx(px, py);
+    ctx.beginPath(); ctx.arc(qx, qy, 7, 0, Math.PI * 2); ctx.fillStyle = "#FFB341"; ctx.fill(); ctx.strokeStyle = "#0B0F1A"; ctx.lineWidth = 2; ctx.stroke();
+    const z = w1 * px + w2 * py + b, y = f[act](z);
+    $("x1").textContent = px.toFixed(2); $("x2").textContent = py.toFixed(2); $("z").textContent = z.toFixed(2); $("y").textContent = y.toFixed(2);
+  }
+  ["w1", "w2", "b"].forEach((id) => ($(id).oninput = draw));
+  $("act").onchange = draw;
+  cv.onclick = (e) => { const r = cv.getBoundingClientRect(); px = ((e.clientX - r.left) / r.width * 2 - 1) * R; py = (1 - (e.clientY - r.top) / r.height * 2) * R; draw(); };
+  new ResizeObserver(() => { layout(); draw(); }).observe(document.body);
+  layout(); draw();
+})();
+</script>
+</body>
+</html>

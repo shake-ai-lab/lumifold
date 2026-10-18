@@ -1,0 +1,1818 @@
+{
+  "version": 1,
+  "format": "note",
+  "pageNumbers": "outside",
+  "meta": {
+    "title": "よく眠るためのノート",
+    "created": "2026-10-17"
+  },
+  "theme": {
+    "fonts": {
+      "head": "Meiryo",
+      "body": "Meiryo"
+    },
+    "colors": {
+      "dk1": "2B2A28",
+      "lt1": "FFFDF8",
+      "dk2": "23395B",
+      "lt2": "F1ECE2",
+      "accent1": "3E6FA8",
+      "accent2": "4F8A6E",
+      "accent3": "E3B24F",
+      "accent4": "C8794A",
+      "accent5": "8A8379",
+      "accent6": "B5524B"
+    }
+  },
+  "slides": [
+    {
+      "id": "n1",
+      "background": {
+        "color": "dk2"
+      },
+      "elements": [
+        {
+          "id": "n1-kicker",
+          "type": "text",
+          "x": 64,
+          "y": 220,
+          "w": 640,
+          "h": 40,
+          "style": {
+            "fontSize": 12,
+            "bold": true,
+            "color": "accent3"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "SLEEP NOTE"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n1-title",
+          "type": "text",
+          "x": 64,
+          "y": 270,
+          "w": 640,
+          "h": 230,
+          "style": {
+            "fontSize": 40,
+            "bold": true,
+            "color": "lt1",
+            "valign": "bottom",
+            "lineHeight": 1.3
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "よく眠るための"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "ノート"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n1-bar",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 524,
+          "w": 120,
+          "h": 4,
+          "line": {
+            "color": "accent3",
+            "width": 4
+          }
+        },
+        {
+          "id": "n1-sub",
+          "type": "text",
+          "x": 64,
+          "y": 552,
+          "w": 640,
+          "h": 110,
+          "style": {
+            "fontSize": 16,
+            "color": "lt2",
+            "lineHeight": 1.7
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠りのしくみと、今夜からできる 7 つのこと"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n1-by",
+          "type": "text",
+          "x": 64,
+          "y": 880,
+          "w": 640,
+          "h": 48,
+          "style": {
+            "fontSize": 12,
+            "color": "lt2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "Lumifold ノート形式の見本"
+                }
+              ]
+            }
+          ],
+          "role": "caption"
+        }
+      ]
+    },
+    {
+      "id": "n2",
+      "elements": [
+        {
+          "id": "n2-title",
+          "type": "text",
+          "x": 64,
+          "y": 72,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "color": "dk2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "はじめに"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n2-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 164,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n2-body",
+          "type": "text",
+          "x": 64,
+          "y": 188,
+          "w": 640,
+          "h": 620,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.8,
+            "paraSpacing": 12
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "人は人生のおよそ 3 分の 1 を眠って過ごします。それなのに、眠りについて学ぶ機会はあまりありません。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "このノートでは、まず眠りがどんなリズムでできているかを見て、そのあとで今夜から試せる工夫をまとめます。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "数字はどれも「多くの人に当てはまる目安」です。眠りには個人差が大きいので、自分の体の感じ方を一番の手がかりにしてください。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n2-hint",
+          "type": "text",
+          "x": 64,
+          "y": 840,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 11,
+            "color": "accent5",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "右下の角をつまんでめくるか、→ キーで次のページへ。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n3",
+      "background": {
+        "color": "lt2"
+      },
+      "hidePageNumber": true,
+      "elements": [
+        {
+          "id": "n3-no",
+          "type": "text",
+          "x": 64,
+          "y": 270,
+          "w": 640,
+          "h": 150,
+          "style": {
+            "fontSize": 72,
+            "bold": true,
+            "color": "accent1",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "01"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n3-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 436,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n3-title",
+          "type": "text",
+          "x": 64,
+          "y": 460,
+          "w": 640,
+          "h": 110,
+          "style": {
+            "fontSize": 30,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠りのしくみ"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n3-lead",
+          "type": "text",
+          "x": 64,
+          "y": 580,
+          "w": 640,
+          "h": 140,
+          "style": {
+            "fontSize": 14,
+            "color": "accent5",
+            "lineHeight": 1.8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠りは一晩じゅう同じ深さではありません。浅い眠りと深い眠りが、波のようにくり返します。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n4",
+      "elements": [
+        {
+          "id": "n4-title",
+          "type": "text",
+          "x": 64,
+          "y": 72,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "color": "dk2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠りは約 90 分の波"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n4-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 164,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n4-chart",
+          "type": "chart",
+          "x": 64,
+          "y": 196,
+          "w": 640,
+          "h": 360,
+          "chart": {
+            "kind": "line",
+            "title": "一晩の眠りの深さ(イメージ)",
+            "labels": [
+              "0時間",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "series": [
+              {
+                "name": "眠りの深さ",
+                "values": [
+                  0,
+                  3,
+                  1,
+                  3,
+                  1,
+                  2,
+                  0.5,
+                  1.5,
+                  0
+                ]
+              }
+            ],
+            "options": {
+              "legend": "none"
+            }
+          }
+        },
+        {
+          "id": "n4-cap",
+          "type": "text",
+          "x": 64,
+          "y": 562,
+          "w": 640,
+          "h": 32,
+          "style": {
+            "fontSize": 11,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "図 1  深さ 0 = 目覚め、3 = いちばん深い眠り。前半ほど深く、明け方は浅い"
+                }
+              ]
+            }
+          ],
+          "role": "caption"
+        },
+        {
+          "id": "n4-body",
+          "type": "text",
+          "x": 64,
+          "y": 616,
+          "w": 640,
+          "h": 330,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.8,
+            "paraSpacing": 12
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠り始めると、まず深い眠りまで一気に下り、そこから浅い眠りへ戻ってきます。この 1 往復がおよそ 90 分(人によって 70〜120 分)です。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "一晩でこれを 4〜5 回くり返します。深い眠りは前半に多く、明け方に近づくほど浅い眠りと夢の時間が増えます。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n5",
+      "elements": [
+        {
+          "id": "n5-title",
+          "type": "text",
+          "x": 64,
+          "y": 72,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "color": "dk2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "2 種類の眠り"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n5-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 164,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n5-body",
+          "type": "text",
+          "x": 64,
+          "y": 188,
+          "w": 640,
+          "h": 150,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.8,
+            "paraSpacing": 12
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠りは大きく「レム睡眠」と「ノンレム睡眠」に分かれます。役割が違うので、どちらも欠かせません。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n5-table",
+          "type": "table",
+          "x": 64,
+          "y": 330,
+          "w": 640,
+          "h": 250,
+          "fontSize": 13,
+          "header": true,
+          "rows": [
+            [
+              {
+                "text": ""
+              },
+              {
+                "text": "ノンレム睡眠"
+              },
+              {
+                "text": "レム睡眠"
+              }
+            ],
+            [
+              {
+                "text": "体と脳",
+                "bold": true
+              },
+              {
+                "text": "脳も体も休む"
+              },
+              {
+                "text": "体は休み、脳は活発"
+              }
+            ],
+            [
+              {
+                "text": "多い時間帯",
+                "bold": true
+              },
+              {
+                "text": "夜の前半"
+              },
+              {
+                "text": "明け方"
+              }
+            ],
+            [
+              {
+                "text": "主なはたらき",
+                "bold": true
+              },
+              {
+                "text": "体の修復・成長"
+              },
+              {
+                "text": "記憶の整理・夢"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "n5-box",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 64,
+          "y": 612,
+          "w": 640,
+          "h": 300,
+          "fill": "lt2",
+          "line": null,
+          "radius": 12,
+          "group": "n5-point"
+        },
+        {
+          "id": "n5-box-head",
+          "type": "text",
+          "x": 92,
+          "y": 636,
+          "w": 584,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "accent1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "ポイント"
+                }
+              ]
+            }
+          ],
+          "group": "n5-point"
+        },
+        {
+          "id": "n5-box-body",
+          "type": "text",
+          "x": 92,
+          "y": 688,
+          "w": 584,
+          "h": 200,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.7,
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "寝始めの 3 時間に深い眠りが集まる"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "明け方の眠りは記憶の整理に大切"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "どちらかだけを削ると、もう一方も乱れやすい"
+                }
+              ],
+              "bullet": true
+            }
+          ],
+          "group": "n5-point"
+        }
+      ]
+    },
+    {
+      "id": "n6",
+      "elements": [
+        {
+          "id": "n6-title",
+          "type": "text",
+          "x": 64,
+          "y": 72,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "color": "dk2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "起きる時刻を数える"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n6-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 164,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n6-body",
+          "type": "text",
+          "x": 64,
+          "y": 188,
+          "w": 640,
+          "h": 200,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.8,
+            "paraSpacing": 12
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "波の途中、深い眠りのところで起こされると、頭がぼんやりしやすくなります。波が浅くなるところに合わせて目覚ましをかけると、すっきり起きやすくなります。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n6-math",
+          "type": "math",
+          "x": 64,
+          "y": 410,
+          "w": 640,
+          "h": 110,
+          "latex": "t_{\\text{起床}} = t_{\\text{就寝}} + 15 + 90\\,n",
+          "fontSize": 24,
+          "displayMode": true
+        },
+        {
+          "id": "n6-where",
+          "type": "text",
+          "x": 64,
+          "y": 530,
+          "w": 640,
+          "h": 60,
+          "style": {
+            "fontSize": 12,
+            "color": "accent5",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "15 分は寝つくまでの時間、n は波の回数(4〜5)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n6-ex-bg",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 64,
+          "y": 620,
+          "w": 640,
+          "h": 250,
+          "fill": "lt2",
+          "line": null,
+          "radius": 12,
+          "group": "n6-ex"
+        },
+        {
+          "id": "n6-ex",
+          "type": "text",
+          "x": 92,
+          "y": 640,
+          "w": 584,
+          "h": 210,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.8,
+            "paraSpacing": 6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "例: 23:00 に布団に入るなら"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "n = 4 → 5:15    n = 5 → 6:45",
+                  "bold": true
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "90 分はあくまで目安。数日試して、起きやすい時刻を探しましょう。"
+                }
+              ]
+            }
+          ],
+          "group": "n6-ex"
+        }
+      ]
+    },
+    {
+      "id": "n7",
+      "background": {
+        "color": "lt2"
+      },
+      "hidePageNumber": true,
+      "elements": [
+        {
+          "id": "n7-no",
+          "type": "text",
+          "x": 64,
+          "y": 270,
+          "w": 640,
+          "h": 150,
+          "style": {
+            "fontSize": 72,
+            "bold": true,
+            "color": "accent2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n7-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 436,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent2",
+            "width": 2
+          }
+        },
+        {
+          "id": "n7-title",
+          "type": "text",
+          "x": 64,
+          "y": 460,
+          "w": 640,
+          "h": 110,
+          "style": {
+            "fontSize": 30,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "今夜からできること"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n7-lead",
+          "type": "text",
+          "x": 64,
+          "y": 580,
+          "w": 640,
+          "h": 140,
+          "style": {
+            "fontSize": 14,
+            "color": "accent5",
+            "lineHeight": 1.8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "特別な道具はいりません。光・温度・カフェインの 3 つを意識するだけで、眠りは変わります。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n8",
+      "elements": [
+        {
+          "id": "n8-title",
+          "type": "text",
+          "x": 64,
+          "y": 72,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "color": "dk2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "7 つの習慣"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n8-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 164,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n8-no1",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 64,
+          "y": 202,
+          "w": 44,
+          "h": 44,
+          "fill": "accent1",
+          "line": null,
+          "group": "n8-h1"
+        },
+        {
+          "id": "n8-no1-t",
+          "type": "text",
+          "x": 64,
+          "y": 202,
+          "w": 44,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "1"
+                }
+              ]
+            }
+          ],
+          "group": "n8-h1"
+        },
+        {
+          "id": "n8-head1",
+          "type": "text",
+          "x": 128,
+          "y": 196,
+          "w": 576,
+          "h": 34,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "朝の光を浴びる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-body1",
+          "type": "text",
+          "x": 128,
+          "y": 232,
+          "w": 576,
+          "h": 56,
+          "style": {
+            "fontSize": 12,
+            "color": "dk1",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "起きて 1 時間以内に外の光を。体内時計がそろいます。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-no2",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 64,
+          "y": 306,
+          "w": 44,
+          "h": 44,
+          "fill": "accent1",
+          "line": null,
+          "group": "n8-h2"
+        },
+        {
+          "id": "n8-no2-t",
+          "type": "text",
+          "x": 64,
+          "y": 306,
+          "w": 44,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "2"
+                }
+              ]
+            }
+          ],
+          "group": "n8-h2"
+        },
+        {
+          "id": "n8-head2",
+          "type": "text",
+          "x": 128,
+          "y": 300,
+          "w": 576,
+          "h": 34,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "起きる時刻をそろえる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-body2",
+          "type": "text",
+          "x": 128,
+          "y": 336,
+          "w": 576,
+          "h": 56,
+          "style": {
+            "fontSize": 12,
+            "color": "dk1",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "休日もずれは 1 時間以内に。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-no3",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 64,
+          "y": 410,
+          "w": 44,
+          "h": 44,
+          "fill": "accent1",
+          "line": null,
+          "group": "n8-h3"
+        },
+        {
+          "id": "n8-no3-t",
+          "type": "text",
+          "x": 64,
+          "y": 410,
+          "w": 44,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "3"
+                }
+              ]
+            }
+          ],
+          "group": "n8-h3"
+        },
+        {
+          "id": "n8-head3",
+          "type": "text",
+          "x": 128,
+          "y": 404,
+          "w": 576,
+          "h": 34,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "カフェインは昼過ぎまで"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-body3",
+          "type": "text",
+          "x": 128,
+          "y": 440,
+          "w": 576,
+          "h": 56,
+          "style": {
+            "fontSize": 12,
+            "color": "dk1",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "夕方以降のコーヒー・緑茶は控えめに(次のページ)。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-no4",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 64,
+          "y": 514,
+          "w": 44,
+          "h": 44,
+          "fill": "accent1",
+          "line": null,
+          "group": "n8-h4"
+        },
+        {
+          "id": "n8-no4-t",
+          "type": "text",
+          "x": 64,
+          "y": 514,
+          "w": 44,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "4"
+                }
+              ]
+            }
+          ],
+          "group": "n8-h4"
+        },
+        {
+          "id": "n8-head4",
+          "type": "text",
+          "x": 128,
+          "y": 508,
+          "w": 576,
+          "h": 34,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "寝る前の画面を減らす"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-body4",
+          "type": "text",
+          "x": 128,
+          "y": 544,
+          "w": 576,
+          "h": 56,
+          "style": {
+            "fontSize": 12,
+            "color": "dk1",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "明るい光は眠気を遅らせます。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-no5",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 64,
+          "y": 618,
+          "w": 44,
+          "h": 44,
+          "fill": "accent1",
+          "line": null,
+          "group": "n8-h5"
+        },
+        {
+          "id": "n8-no5-t",
+          "type": "text",
+          "x": 64,
+          "y": 618,
+          "w": 44,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "5"
+                }
+              ]
+            }
+          ],
+          "group": "n8-h5"
+        },
+        {
+          "id": "n8-head5",
+          "type": "text",
+          "x": 128,
+          "y": 612,
+          "w": 576,
+          "h": 34,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "お風呂は寝る 1〜2 時間前"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-body5",
+          "type": "text",
+          "x": 128,
+          "y": 648,
+          "w": 576,
+          "h": 56,
+          "style": {
+            "fontSize": 12,
+            "color": "dk1",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "体温が下がるときに眠気が来ます。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-no6",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 64,
+          "y": 722,
+          "w": 44,
+          "h": 44,
+          "fill": "accent1",
+          "line": null,
+          "group": "n8-h6"
+        },
+        {
+          "id": "n8-no6-t",
+          "type": "text",
+          "x": 64,
+          "y": 722,
+          "w": 44,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "6"
+                }
+              ]
+            }
+          ],
+          "group": "n8-h6"
+        },
+        {
+          "id": "n8-head6",
+          "type": "text",
+          "x": 128,
+          "y": 716,
+          "w": 576,
+          "h": 34,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "寝室は涼しく暗く"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-body6",
+          "type": "text",
+          "x": 128,
+          "y": 752,
+          "w": 576,
+          "h": 56,
+          "style": {
+            "fontSize": 12,
+            "color": "dk1",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "暑さと明かりは眠りを浅くします。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-no7",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 64,
+          "y": 826,
+          "w": 44,
+          "h": 44,
+          "fill": "accent1",
+          "line": null,
+          "group": "n8-h7"
+        },
+        {
+          "id": "n8-no7-t",
+          "type": "text",
+          "x": 64,
+          "y": 826,
+          "w": 44,
+          "h": 44,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "7"
+                }
+              ]
+            }
+          ],
+          "group": "n8-h7"
+        },
+        {
+          "id": "n8-head7",
+          "type": "text",
+          "x": 128,
+          "y": 820,
+          "w": 576,
+          "h": 34,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠れないときは一度起きる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n8-body7",
+          "type": "text",
+          "x": 128,
+          "y": 856,
+          "w": 576,
+          "h": 56,
+          "style": {
+            "fontSize": 12,
+            "color": "dk1",
+            "lineHeight": 1.6
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "布団で悩まず、眠くなってから戻る。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n9",
+      "elements": [
+        {
+          "id": "n9-title",
+          "type": "text",
+          "x": 64,
+          "y": 72,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "color": "dk2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "カフェインはゆっくり抜ける"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n9-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 164,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n9-body",
+          "type": "text",
+          "x": 64,
+          "y": 188,
+          "w": 640,
+          "h": 150,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.8,
+            "paraSpacing": 12
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "カフェインが体の中で半分になるまで、およそ 5 時間(人によって 2〜8 時間)かかります。夕方の 1 杯は、寝る時刻にもまだ残っています。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n9-chart",
+          "type": "chart",
+          "x": 64,
+          "y": 350,
+          "w": 640,
+          "h": 380,
+          "chart": {
+            "kind": "area",
+            "title": "15 時に飲んだコーヒーのカフェイン(%)",
+            "labels": [
+              "15時",
+              "16時",
+              "17時",
+              "18時",
+              "19時",
+              "20時",
+              "21時",
+              "22時",
+              "23時",
+              "0時",
+              "1時",
+              "2時",
+              "3時"
+            ],
+            "series": [
+              {
+                "name": "残っている量",
+                "values": [
+                  100,
+                  87,
+                  76,
+                  66,
+                  57,
+                  50,
+                  44,
+                  38,
+                  33,
+                  29,
+                  25,
+                  22,
+                  19
+                ]
+              }
+            ],
+            "options": {
+              "legend": "none",
+              "colors": [
+                "accent4"
+              ]
+            }
+          }
+        },
+        {
+          "id": "n9-cap",
+          "type": "text",
+          "x": 64,
+          "y": 736,
+          "w": 640,
+          "h": 32,
+          "style": {
+            "fontSize": 11,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "図 2  半減期 5 時間で計算。0 時でもおよそ 3 割が残る"
+                }
+              ]
+            }
+          ],
+          "role": "caption"
+        },
+        {
+          "id": "n9-call-bg",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 64,
+          "y": 790,
+          "w": 640,
+          "h": 140,
+          "fill": "dk2",
+          "line": null,
+          "radius": 12,
+          "group": "n9-call"
+        },
+        {
+          "id": "n9-call",
+          "type": "text",
+          "x": 92,
+          "y": 790,
+          "w": 584,
+          "h": 140,
+          "style": {
+            "fontSize": 17,
+            "bold": true,
+            "color": "lt1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "目安: 寝る 8 時間前を最後の 1 杯に"
+                }
+              ]
+            }
+          ],
+          "group": "n9-call"
+        }
+      ]
+    },
+    {
+      "id": "n10",
+      "elements": [
+        {
+          "id": "n10-title",
+          "type": "text",
+          "x": 64,
+          "y": 72,
+          "w": 640,
+          "h": 80,
+          "style": {
+            "fontSize": 24,
+            "bold": true,
+            "color": "dk2",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "おわりに"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "n10-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 164,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "n10-body",
+          "type": "text",
+          "x": 64,
+          "y": 188,
+          "w": 640,
+          "h": 420,
+          "style": {
+            "fontSize": 14,
+            "lineHeight": 1.8,
+            "paraSpacing": 12
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "眠りは「がんばる」ほど遠ざかるものです。7 つ全部を守ろうとせず、まずは朝の光と起きる時刻の 2 つから始めてみてください。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "1 週間ほど続けると、夜の眠気が来る時刻が少しずつそろってきます。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "n10-colophon-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 64,
+          "y": 760,
+          "w": 640,
+          "h": 2,
+          "line": {
+            "color": "accent5",
+            "width": 1
+          }
+        },
+        {
+          "id": "n10-colophon",
+          "type": "text",
+          "x": 64,
+          "y": 780,
+          "w": 640,
+          "h": 150,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "lineHeight": 1.7,
+            "paraSpacing": 4
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "よく眠るためのノート"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "Lumifold「ノート」形式の見本。読むボタンで単ページ・見開きを切り替え、ページの角をつまんでめくれます。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "内容は一般的な目安です。眠りの悩みが続くときは医療機関に相談してください。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

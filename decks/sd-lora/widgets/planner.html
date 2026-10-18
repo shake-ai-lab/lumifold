@@ -1,0 +1,171 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LoRA 学習の設定を計算する</title>
+<style>/* sd-lora のウィジェット共通（暗室テーマ）。1em = iframe の幅 / --cols（各ウィジェットが決める）。
+   赤 = ノイズ・拡散、琥珀 = 信号・LoRA、青緑 = 文字の条件、青 = 潜在、紫 = 2 つ目のクラス */
+:root {
+  --bg: #15110F; --card: #1C1714; --raise: #26201C; --line: #3B332C; --ink: #EFE7DB; --sub: #A89E91; --mute: #776D63;
+  --red: #FF5A47; --amber: #F3B23E; --teal: #45C4B0; --blue: #7FA2FF; --violet: #C08BFF;
+  --red-soft: rgba(255, 90, 71, .15); --amber-soft: rgba(243, 178, 62, .15); --teal-soft: rgba(69, 196, 176, .15); --violet-soft: rgba(192, 139, 255, .15);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; }
+body { color: var(--ink); font: 400 calc(100vw / var(--cols, 46)) / 1.4 "Yu Gothic UI", "Meiryo UI", "Meiryo", sans-serif; overflow: hidden; }
+.frame { height: 100%; display: flex; flex-direction: column; gap: .55em; padding: .7em .9em .75em; background: var(--card); border: 1px solid var(--line); border-radius: .7em; }
+header { display: flex; align-items: center; gap: .6em; min-height: 1.5em; }
+.tag { font-size: .78em; font-weight: 700; letter-spacing: .08em; color: var(--red); white-space: nowrap; }
+.tag::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .45em; border-radius: 50%; background: currentColor; box-shadow: 0 0 .5em currentColor; vertical-align: .05em; }
+.chip { margin-left: auto; font-size: .72em; padding: .1em .7em; border-radius: 999px; background: var(--raise); color: var(--sub); white-space: nowrap; }
+.num, output { font-family: Consolas, "Cascadia Mono", monospace; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--raise); border-radius: 999px; padding: .2em .85em; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.btn:hover { border-color: var(--amber); color: var(--amber); }
+.btn.primary { background: var(--amber); border-color: var(--amber); color: #261A06; }
+.btn.primary:hover { filter: brightness(1.08); color: #261A06; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
+.seg button { border: 0; background: transparent; padding: .2em .75em; font-size: .82em; color: var(--sub); white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--raise); color: var(--ink); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amber); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .45em .9em; }
+label { display: inline-flex; align-items: center; gap: .45em; font-size: .85em; color: var(--sub); white-space: nowrap; }
+label b { color: var(--ink); }
+input[type=range] { width: 7.5em; accent-color: var(--amber); margin: 0; }
+output { color: var(--ink); min-width: 2.4em; display: inline-block; }
+.tile { background: var(--raise); border-radius: .45em; padding: .3em .6em .35em; min-width: 0; }
+.tile .k { font-size: .72em; color: var(--sub); white-space: nowrap; }
+.tile .v { font-size: 1.25em; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hint { font-size: .8em; color: var(--sub); line-height: 1.45; }
+.hint b { color: var(--ink); }
+.red { color: var(--red); } .amber { color: var(--amber); } .teal { color: var(--teal); } .blue { color: var(--blue); } .violet { color: var(--violet); } .sub { color: var(--sub); }
+canvas { display: block; }
+.m { font-family: "Cambria Math", Cambria, "Times New Roman", serif; font-size: 1.08em; }
+
+:root { --cols: 46; }
+.main { flex: 1; min-height: 0; display: flex; gap: .9em; }
+.form { width: 15.2em; display: flex; flex-direction: column; gap: .32em; flex: none; }
+.form label { justify-content: space-between; }
+.form label span { min-width: 4.6em; }
+.form input[type=range] { width: 6.6em; }
+.form output { min-width: 2.6em; text-align: right; }
+.out { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .4em; }
+.tiles { display: grid; grid-template-columns: 1.15fr 1fr 1.2fr; gap: .3em; }
+.tiles .v { font-size: 1.15em; }
+.tiles .v small { font-size: .62em; color: var(--sub); font-weight: 400; }
+#chart { flex: 1; min-height: 0; width: 100%; }
+.gauge { position: relative; height: 2.3em; }
+.gauge .bar { position: absolute; left: 0; right: 0; top: .9em; height: .45em; background: var(--raise); border-radius: 999px; }
+.gauge .band { position: absolute; top: .9em; height: .45em; background: rgba(69, 196, 176, .45); border-radius: 999px; }
+.gauge .mark { position: absolute; top: .55em; width: .2em; height: 1.15em; background: var(--amber); border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 .4em var(--amber); }
+.gauge .lab { position: absolute; top: 0; font-size: .66em; color: var(--sub); white-space: nowrap; }
+.gauge .tick { position: absolute; top: 1.55em; font-size: .62em; color: var(--mute); transform: translateX(-50%); }
+</style></head><body><div class="frame">
+<header><span class="tag" style="color:var(--amber)">PLAN · 学習の設定から、総ステップと大きさを出す</span><span class="chip">kohya-ss/sd-scripts と同じ数え方</span></header>
+<div class="main">
+  <div class="form">
+    <div class="seg" id="base" style="align-self:flex-start"><button data-v="sd15" class="on" aria-pressed="true">SD 1.5</button><button data-v="sdxl" aria-pressed="false">SDXL</button></div>
+    <label><span>画像の枚数</span><input type="range" id="n" min="5" max="100" value="20"><output id="nv"></output></label>
+    <label><span>繰り返し</span><input type="range" id="rep" min="1" max="20" value="10"><output id="repv"></output></label>
+    <label><span>エポック</span><input type="range" id="ep" min="1" max="20" value="10"><output id="epv"></output></label>
+    <label><span>バッチ</span><input type="range" id="bs" min="1" max="8" value="2"><output id="bsv"></output></label>
+    <label><span>rank（dim）</span><input type="range" id="rk" min="0" max="5" value="2"><output id="rkv"></output></label>
+    <label><span>保存の間隔</span><input type="range" id="sv" min="1" max="5" value="2"><output id="svv"></output></label>
+  </div>
+  <div class="out">
+    <div class="tiles">
+      <div class="tile"><div class="k">総ステップ</div><div class="v amber num" id="o1"></div></div>
+      <div class="tile"><div class="k">1 枚を学ぶ回数</div><div class="v num" id="o2"></div></div>
+      <div class="tile"><div class="k">LoRA（注意層・fp16）</div><div class="v num" id="o3"></div></div>
+    </div>
+    <canvas id="chart" aria-label="学習率と保存点"></canvas>
+    <div class="gauge" id="gauge"></div>
+  </div>
+</div>
+<div class="hint" id="hint"></div>
+</div>
+<script>"use strict";
+// sd-lora のウィジェット共通: 乱数、SD 1.5 と cosine のノイズスケジュール、canvas の解像度合わせ、状態の保存と復元
+const $ = (id) => document.getElementById(id);
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function gauss(r) { const u = Math.max(r(), 1e-12), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const T = 1000;
+// SD 1.5: scaled linear（β の平方根を 0.00085→0.012 で線形に並べて 2 乗）
+const ABAR_SD = (() => { const a = []; let p = 1; const b0 = Math.sqrt(0.00085), b1 = Math.sqrt(0.012); for (let i = 0; i < T; i++) { const b = (b0 + (b1 - b0) * i / (T - 1)) ** 2; p *= 1 - b; a.push(p); } return a; })();
+// cosine（Nichol & Dhariwal 2021、s = 0.008、β ≤ 0.999）
+const ABAR_COS = (() => { const f = (t) => Math.cos((t / T + 0.008) / 1.008 * Math.PI / 2) ** 2; const a = []; let p = 1; for (let i = 0; i < T; i++) { p *= 1 - Math.min(1 - f(i + 1) / f(i), 0.999); a.push(p); } return a; })();
+function fitCanvas(c) {
+  const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0);
+  return { g, w: r.width, h: r.height };
+}
+const fmt = (v, n = 0) => v.toLocaleString("en-US", { minimumFractionDigits: n, maximumFractionDigits: n });
+function segment(el, onPick) {
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { setSeg(el, b.dataset.v); onPick(b.dataset.v); }));
+}
+function setSeg(el, v) { el.querySelectorAll("button").forEach((b) => { const on = b.dataset.v === String(v); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); }); }
+// アプリに状態を預け、読み直したときに戻す（deck-studio:widget-state / widget-restore）
+let publishing = false;
+function publish(state) { if (publishing && parent !== window) parent.postMessage({ type: "deck-studio:widget-state", state }, "*"); }
+function onRestore(fn) {
+  window.addEventListener("message", (e) => {
+    if (e.source !== parent || e.data?.type !== "deck-studio:widget-restore" || !e.data.state) return;
+    const p = publishing; publishing = false; fn(e.data.state); publishing = p;
+  });
+}
+function ready() { publishing = true; if (parent !== window) parent.postMessage({ type: "deck-studio:widget-ready" }, "*"); }
+
+const RANKS = [4, 8, 16, 32, 64, 128], PER_RANK = { sd15: 199296, sdxl: 1451520 }, LR = { sd15: "1e-4", sdxl: "1e-4" };
+let base = "sd15";
+const val = (id) => +$(id).value;
+function calc() {
+  const n = val("n"), rep = val("rep"), ep = val("ep"), bs = val("bs"), rank = RANKS[val("rk")], every = val("sv");
+  const perEpoch = Math.ceil(n * rep / bs), total = perEpoch * ep, params = PER_RANK[base] * rank;
+  return { n, rep, ep, bs, rank, every, perEpoch, total, params, seen: rep * ep };
+}
+function chart(c) {
+  const { g, w, h } = fitCanvas($("chart")), fs = parseFloat(getComputedStyle(document.body).fontSize);
+  const L = fs * 2.3, R = 8, Tp = fs * 1.2, B = fs * 1.3, X = (s) => L + (w - L - R) * s / c.total, Y = (v) => Tp + (h - Tp - B) * (1 - v);
+  g.clearRect(0, 0, w, h); g.font = `${fs * .68}px "Yu Gothic UI", sans-serif`;
+  g.strokeStyle = "#3B332C"; g.lineWidth = 1; g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(w - R, Y(0)); g.moveTo(L, Y(1)); g.lineTo(w - R, Y(1)); g.stroke();
+  g.fillStyle = "#776D63"; g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(LR[base], L - 4, Y(1)); g.fillText("0", L - 4, Y(0));
+  g.textAlign = "left"; g.fillStyle = "#A89E91"; g.fillText("学習率（5% ウォームアップ → cosine で下げる例）", L, Tp - fs * .62);
+  // 保存点（エポックの区切り）
+  const saves = []; for (let e = c.every; e <= c.ep; e += c.every) saves.push(e); if (saves[saves.length - 1] !== c.ep) saves.push(c.ep);
+  g.textAlign = "center"; g.textBaseline = "top";
+  saves.forEach((e) => { const x = X(e * c.perEpoch); g.strokeStyle = "rgba(69,196,176,.55)"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, Tp); g.lineTo(x, Y(0)); g.stroke(); g.setLineDash([]); g.fillStyle = "#45C4B0"; g.beginPath(); g.arc(x, Y(0), 3, 0, 7); g.fill(); });
+  const step = Math.max(1, Math.ceil(saves.length / 6)); g.fillStyle = "#45C4B0";
+  saves.forEach((e, i) => { if (i % step === 0 || i === saves.length - 1) g.fillText(`e${e}`, Math.min(w - R - 8, X(e * c.perEpoch)), Y(0) + 3); });
+  const warm = Math.max(1, Math.round(c.total * 0.05)); g.strokeStyle = "#F3B23E"; g.lineWidth = 2; g.beginPath();
+  for (let i = 0; i <= 120; i++) { const s = c.total * i / 120, v = s < warm ? s / warm : 0.5 * (1 + Math.cos(Math.PI * (s - warm) / Math.max(1, c.total - warm))); i ? g.lineTo(X(s), Y(v)) : g.moveTo(X(s), Y(v)); }
+  g.stroke();
+  return saves.length;
+}
+function gauge(total) {
+  const MAX = 6000, pct = (s) => Math.min(100, s / MAX * 100);
+  $("gauge").innerHTML = `<div class="bar"></div><div class="band" style="left:${pct(1000)}%;width:${pct(3000) - pct(1000)}%"></div>
+    <span class="lab" style="left:${pct(1000)}%">よく使われる出発点 1,000〜3,000</span>
+    ${[0, 2000, 4000, 6000].map((s) => `<span class="tick" style="left:${Math.min(97, Math.max(3, pct(s)))}%">${fmt(s)}</span>`).join("")}
+    <div class="mark" style="left:${pct(total)}%"></div>`;
+}
+function render() {
+  const c = calc();
+  $("nv").textContent = c.n; $("repv").textContent = c.rep; $("epv").textContent = c.ep; $("bsv").textContent = c.bs; $("rkv").textContent = c.rank; $("svv").textContent = `${c.every} ep`;
+  $("o1").innerHTML = `${fmt(c.total)} <small>= ⌈${c.n}×${c.rep}÷${c.bs}⌉×${c.ep}</small>`;
+  $("o2").innerHTML = `${c.seen} <small>回</small>`;
+  $("o3").innerHTML = `${(c.params * 2 / 1e6).toFixed(1)} MB <small>${(c.params / 1e6).toFixed(2)}M 個</small>`;
+  const nSaves = chart(c); gauge(c.total);
+  let h = `<b>保存されるのは ${nSaves} 個</b>（e = エポック）。同じシード・同じプロンプトで並べて、特徴が出て、かつプロンプトが効く版を選ぶ。`;
+  if (c.total < 600) h += `<b class="red">総ステップが少なめ：</b>特徴が出ないなら、繰り返しかエポックを増やす。`;
+  else if (c.total > 4000) h += `<b class="red">多め：</b>同じ構図・背景が出たら過学習。早い保存版を使うか、学習率・rank を下げる。`;
+  else h += `数値は出発点。最後はサンプル画像で判断する。`;
+  if (c.n < 10) h += ` 枚数が少ないと背景や服まで覚えやすい。`;
+  if (c.rank >= 64) h += ` rank ${c.rank} は大きめ（ファイルと過学習の両方が増える）。`;
+  $("hint").innerHTML = h;
+  publish({ base, n: c.n, rep: c.rep, ep: c.ep, bs: c.bs, rk: val("rk"), sv: c.every });
+}
+segment($("base"), (v) => { base = v; render(); });
+for (const id of ["n", "rep", "ep", "bs", "rk", "sv"]) $(id).addEventListener("input", render);
+onRestore((s) => { if (s.base === "sd15" || s.base === "sdxl") { base = s.base; setSeg($("base"), base); } for (const id of ["n", "rep", "ep", "bs", "rk", "sv"]) if (Number.isFinite(s[id])) $(id).value = s[id]; render(); });
+new ResizeObserver(() => render()).observe(document.body);
+render(); ready();
+</script></body></html>

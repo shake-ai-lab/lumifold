@@ -1,0 +1,337 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Attention introduction",
+    "author": "Deck Studio UI study",
+    "created": "2026-10-17"
+  },
+  "theme": {
+    "fonts": {
+      "head": "Yu Gothic",
+      "body": "Yu Gothic"
+    },
+    "colors": {
+      "dk1": "F0F5FC",
+      "lt1": "0C1424",
+      "dk2": "F0F5FC",
+      "lt2": "142239",
+      "accent1": "59D7E8",
+      "accent2": "B6A0FF",
+      "accent3": "F6C675",
+      "accent4": "87D8B0",
+      "accent5": "A9B8CE",
+      "accent6": "F69C9F",
+      "grid": "30415B"
+    }
+  },
+  "slides": [
+    {
+      "id": "attention-start",
+      "background": {
+        "color": "lt1"
+      },
+      "elements": [
+        {
+          "id": "text-mvb9464a1",
+          "type": "text",
+          "x": 75,
+          "y": 107,
+          "w": 1123,
+          "h": 80,
+          "style": {
+            "fontSize": 42,
+            "bold": true
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "Attention入門",
+                  "fontSize": 42,
+                  "bold": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "text-mvb963xy2",
+          "type": "text",
+          "x": 75,
+          "y": 251,
+          "w": 1123,
+          "h": 319,
+          "style": {
+            "fontSize": 28
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "Attentionは、関係の強さに応じて情報を集める計算です。たとえば文章では、ある語を表す情報を、周囲の語の情報も使って更新します。ここでは「何を見るか」と「どれだけ混ぜるか」を、Q・K・Vと小さな数値例で説明します。",
+                  "fontSize": 28
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-mvb97nog3",
+      "elements": [
+        {
+          "id": "text-mvb98alf4",
+          "type": "text",
+          "x": 75,
+          "y": 107,
+          "w": 1123,
+          "h": 80,
+          "style": {
+            "fontSize": 42,
+            "bold": true
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "fontSize": 42,
+                  "bold": true,
+                  "text": "Q・K・Vの役割"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "table-mvb98rkc5",
+          "type": "table",
+          "x": 75,
+          "y": 230,
+          "w": 1123,
+          "h": 315,
+          "rows": [
+            [
+              {
+                "text": "記号"
+              },
+              {
+                "text": "役割"
+              }
+            ],
+            [
+              {
+                "text": "Q：Query"
+              },
+              {
+                "text": "注目する側の特徴"
+              }
+            ],
+            [
+              {
+                "text": "K：Key"
+              },
+              {
+                "text": "Qとの関連度を比べる特徴"
+              }
+            ],
+            [
+              {
+                "text": "V：Value"
+              },
+              {
+                "text": "重みを掛けて集める情報"
+              }
+            ]
+          ],
+          "fontSize": 24
+        }
+      ]
+    },
+    {
+      "id": "s-mvb9cp5c6",
+      "elements": [
+        {
+          "id": "text-mvb9cp5c7",
+          "type": "text",
+          "x": 75,
+          "y": 107,
+          "w": 1123,
+          "h": 80,
+          "style": {
+            "fontSize": 42,
+            "bold": true
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "fontSize": 42,
+                  "bold": true,
+                  "text": "重み付きで集める：説明用の数値例"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "table-mvb9cp5c8",
+          "type": "table",
+          "x": 75,
+          "y": 230,
+          "w": 1123,
+          "h": 315,
+          "rows": [
+            [
+              {
+                "text": "参照先"
+              },
+              {
+                "text": "重み"
+              },
+              {
+                "text": "値（1次元）"
+              }
+            ],
+            [
+              {
+                "text": "A"
+              },
+              {
+                "text": "0.7"
+              },
+              {
+                "text": "10"
+              }
+            ],
+            [
+              {
+                "text": "B"
+              },
+              {
+                "text": "0.2"
+              },
+              {
+                "text": "20"
+              }
+            ],
+            [
+              {
+                "text": "C"
+              },
+              {
+                "text": "0.1"
+              },
+              {
+                "text": "30"
+              }
+            ]
+          ],
+          "fontSize": 24
+        },
+        {
+          "id": "math-mvb9dkoh9",
+          "type": "math",
+          "x": 320,
+          "y": 545,
+          "w": 640,
+          "h": 160,
+          "latex": "0.7 \\times 10 + 0.2 \\times 20 + 0.1 \\times 30 = 14",
+          "fontSize": 26
+        }
+      ]
+    },
+    {
+      "id": "s-mvb9e2j4a",
+      "background": {
+        "color": "lt1"
+      },
+      "elements": [
+        {
+          "id": "text-mvb9e2j4b",
+          "type": "text",
+          "x": 75,
+          "y": 107,
+          "w": 1123,
+          "h": 80,
+          "style": {
+            "fontSize": 42,
+            "bold": true
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "fontSize": 42,
+                  "bold": true,
+                  "text": "計算の流れとTransformerでの使い方"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "text-mvb9e2j4c",
+          "type": "text",
+          "x": 75,
+          "y": 251,
+          "w": 1123,
+          "h": 319,
+          "style": {
+            "fontSize": 28
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "fontSize": 28,
+                  "text": "① QとKの内積をスケーリングし、softmaxで重みにする。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "fontSize": 28,
+                  "text": "② その重みでVを足し合わせ、新しい表現を作る。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "fontSize": 28,
+                  "text": "Self-Attention：同じ入力列からQ・K・Vを作る。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "fontSize": 28,
+                  "text": "Multi-Head：複数の投影で並列計算し、結果を結合する。"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "fontSize": 28,
+                  "text": "出典：Vaswaniほか（2017）Attention Is All You Need"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "fontSize": 28,
+                  "text": "https://arxiv.org/abs/1706.03762"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

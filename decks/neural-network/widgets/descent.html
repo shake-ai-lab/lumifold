@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>勾配降下法を体感する</title>
+<style>
+/* ウィジェット共通のサイバー配色。各 HTML はこの内容を <style> に埋め込む(自己完結のため、ビルド時に差し込む) */
+:root {
+  --bg: #0B0F1A; --panel: #121A2B; --panel2: #182238; --text: #E6F1FF; --muted: #7C8AA5;
+  --cyan: #00E5FF; --mag: #FF2BD6; --lime: #B6FF3C; --amber: #FFB341; --red: #FF4D6D;
+  --line: rgba(0, 229, 255, 0.22); --grid: rgba(0, 229, 255, 0.08);
+}
+html, body { margin: 0; height: 100%; font-family: Meiryo, "Yu Gothic UI", sans-serif; color: var(--text); background: var(--bg); overflow: hidden; }
+label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+label span b { color: var(--cyan); font-size: 14px; }
+select, button { font: inherit; font-size: 13px; }
+select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--text); }
+input[type=range] { width: 100%; accent-color: var(--cyan); }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+button { padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--cyan); cursor: pointer; }
+button.primary { background: var(--cyan); color: #061018; font-weight: 700; border-color: var(--cyan); }
+button:hover { filter: brightness(1.15); }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.stats div { font-size: 11px; color: var(--muted); }
+.stats b { display: block; font-size: 20px; color: var(--cyan); }
+.stats b.v { color: var(--mag); }
+.hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 0; }
+.msg { font-size: 12px; font-weight: 700; min-height: 1.5em; color: var(--lime); }
+.msg.bad { color: var(--red); }
+.cap { font-size: 11px; color: var(--muted); margin: -6px 0 0 4px; }
+canvas.plot { background: #0E1424; border: 1px solid var(--line); border-radius: 6px; }
+
+
+  .wrap { display:flex; height:100%; gap:14px; padding:12px; box-sizing:border-box; }
+  .controls { width:210px; flex:none; display:flex; flex-direction:column; gap:8px; }
+  .stats1 { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12px; line-height:1.8; }
+  .stats1 b { color:var(--cyan); }
+  #cv { flex:1; min-width:0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label><span>学習率 η = <b id="lrv">0.10</b></span><input id="lr" type="range" min="0.01" max="3" step="0.01" value="0.1"></label>
+    <label><span>開始位置 w₀ = <b id="w0v">-3.0</b></span><input id="w0" type="range" min="-4" max="6" step="0.1" value="-3"></label>
+    <div class="btns">
+      <button id="step" class="primary">1 ステップ</button>
+      <button id="auto">▶ 自動</button>
+      <button id="reset">↺</button>
+    </div>
+    <div class="stats1">
+      ステップ <b id="n">0</b><br>
+      w = <b id="w">-3.00</b><br>
+      損失 L(w) = <b id="L">–</b><br>
+      勾配 dL/dw = <b id="g">–</b>
+    </div>
+    <div class="msg" id="msg"></div>
+    <p class="hint">w ← w − η · dL/dw。傾き(勾配)に学習率を掛けた分だけ下る。η が大きすぎると跳ね回って発散、小さすぎると着かない。開始位置によっては手前の谷に落ちる。</p>
+  </div>
+  <canvas id="cv" class="plot"></canvas>
+</div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const cv = $("cv");
+  const L = (w) => 0.5 * (w - 1.8) ** 2 + 0.7 * Math.cos(2.5 * w) + 0.8;
+  const dL = (w) => 1.0 * (w - 1.8) - 1.75 * Math.sin(2.5 * w);
+  const XMIN = -4.5, XMAX = 6.5;
+  let w = -3, n = 0, trail = [], auto = false, diverged = false;
+  function layout() {
+    const wrap = document.querySelector(".wrap");
+    cv.width = Math.max(100, wrap.clientWidth - 24 - 210 - 14); cv.height = Math.max(100, wrap.clientHeight - 24);
+  }
+  function reset() { w = +$("w0").value; n = 0; trail = [w]; auto = false; diverged = false; $("auto").textContent = "▶ 自動"; $("msg").textContent = ""; $("msg").className = "msg"; draw(); }
+  function step() {
+    if (diverged) return;
+    const g = dL(w);
+    w = w - +$("lr").value * g; n++;
+    trail.push(w);
+    const stop = (t, bad) => { $("msg").textContent = t; $("msg").className = bad ? "msg bad" : "msg"; auto = false; $("auto").textContent = "▶ 自動"; };
+    if (!isFinite(w) || Math.abs(w) > 1e3) { diverged = true; stop("発散しました。学習率を下げてリセット", true); }
+    else if (n >= 60 && Math.abs(g) > 0.3) stop("跳ね回って収束しない。学習率を下げる", true);
+    else if (Math.abs(g) < 1e-3 && n > 2) stop(Math.abs(w - 2.2) < 0.6 ? "最小値付近に到達" : "手前の谷(局所解)に落ち着いた", false);
+    draw();
+  }
+  function draw() {
+    const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, P = 30;
+    ctx.clearRect(0, 0, W, H);
+    const ymax = 12;
+    const X = (x) => P + (W - 2 * P) * (x - XMIN) / (XMAX - XMIN), Y = (y) => H - P - (H - 2 * P) * Math.min(y, ymax) / ymax;
+    ctx.strokeStyle = "rgba(0,229,255,0.1)"; ctx.lineWidth = 1;
+    for (let x = -4; x <= 6; x += 1) { ctx.beginPath(); ctx.moveTo(X(x), P); ctx.lineTo(X(x), H - P); ctx.stroke(); }
+    ctx.strokeStyle = "rgba(0,229,255,0.25)"; ctx.beginPath(); ctx.moveTo(P, Y(0)); ctx.lineTo(W - P, Y(0)); ctx.stroke();
+    ctx.fillStyle = "#7C8AA5"; ctx.font = "11px Meiryo, sans-serif"; ctx.textAlign = "center";
+    for (let x = -4; x <= 6; x += 2) ctx.fillText(x, X(x), H - P + 14);
+    ctx.fillText("w", W - 12, H - P + 14); ctx.textAlign = "left"; ctx.fillText("L(w)", P + 4, P - 10);
+    ctx.shadowColor = "#00E5FF"; ctx.shadowBlur = 10;
+    ctx.strokeStyle = "#00E5FF"; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 400; i++) { const x = XMIN + (XMAX - XMIN) * i / 400; i ? ctx.lineTo(X(x), Y(L(x))) : ctx.moveTo(X(x), Y(L(x))); }
+    ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.lineWidth = 1.5;
+    for (let i = 1; i < trail.length; i++) {
+      const a = trail[i - 1], b = trail[i]; if (!isFinite(b) || Math.abs(b) > 50) break;
+      ctx.strokeStyle = `rgba(255,179,65,${0.25 + 0.75 * i / trail.length})`;
+      ctx.beginPath(); ctx.moveTo(X(a), Y(L(a))); ctx.lineTo(X(b), Y(L(b))); ctx.stroke();
+      ctx.fillStyle = "rgba(255,179,65,0.6)"; ctx.beginPath(); ctx.arc(X(a), Y(L(a)), 3, 0, Math.PI * 2); ctx.fill();
+    }
+    if (isFinite(w) && Math.abs(w) < 50) {
+      const g = dL(w), x0 = Math.max(XMIN, w - 0.9), x1 = Math.min(XMAX, w + 0.9);
+      ctx.strokeStyle = "#FF2BD6"; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath();
+      ctx.moveTo(X(x0), Y(L(w) + g * (x0 - w))); ctx.lineTo(X(x1), Y(L(w) + g * (x1 - w))); ctx.stroke(); ctx.setLineDash([]);
+      const nx = w - +$("lr").value * g;
+      if (Math.abs(nx) < 50) { ctx.strokeStyle = "#B6FF3C"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(w), Y(L(w)) - 16); ctx.lineTo(X(nx), Y(L(w)) - 16); ctx.stroke();
+        const dir = Math.sign(nx - w) || 1; ctx.fillStyle = "#B6FF3C"; ctx.beginPath(); ctx.moveTo(X(nx), Y(L(w)) - 16); ctx.lineTo(X(nx) - dir * 8, Y(L(w)) - 21); ctx.lineTo(X(nx) - dir * 8, Y(L(w)) - 11); ctx.fill(); }
+      ctx.shadowColor = "#FFB341"; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.arc(X(w), Y(L(w)), 9, 0, Math.PI * 2); ctx.fillStyle = "#FFB341"; ctx.fill(); ctx.shadowBlur = 0;
+      $("w").textContent = w.toFixed(2); $("L").textContent = L(w).toFixed(2); $("g").textContent = g.toFixed(2);
+    } else { $("w").textContent = "∞"; $("L").textContent = "∞"; $("g").textContent = "∞"; }
+    $("n").textContent = n; $("lrv").textContent = (+$("lr").value).toFixed(2); $("w0v").textContent = (+$("w0").value).toFixed(1);
+  }
+  function loop() { if (!auto) return; step(); setTimeout(() => requestAnimationFrame(loop), 120); }
+  $("step").onclick = () => { auto = false; $("auto").textContent = "▶ 自動"; step(); };
+  $("auto").onclick = () => { if (diverged) return; auto = !auto; $("auto").textContent = auto ? "⏸ 停止" : "▶ 自動"; if (auto) loop(); };
+  $("reset").onclick = reset; $("w0").oninput = reset; $("lr").oninput = draw;
+  new ResizeObserver(() => { layout(); draw(); }).observe(document.body);
+  layout(); reset();
+})();
+</script>
+</body>
+</html>

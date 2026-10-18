@@ -1,0 +1,101 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LoRA 学習の設定を計算する</title>
+<style>/*INC:_darkroom.css*/
+:root { --cols: 46; }
+.main { flex: 1; min-height: 0; display: flex; gap: .9em; }
+.form { width: 15.2em; display: flex; flex-direction: column; gap: .32em; flex: none; }
+.form label { justify-content: space-between; }
+.form label span { min-width: 4.6em; }
+.form input[type=range] { width: 6.6em; }
+.form output { min-width: 2.6em; text-align: right; }
+.out { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .4em; }
+.tiles { display: grid; grid-template-columns: 1.15fr 1fr 1.2fr; gap: .3em; }
+.tiles .v { font-size: 1.15em; }
+.tiles .v small { font-size: .62em; color: var(--sub); font-weight: 400; }
+#chart { flex: 1; min-height: 0; width: 100%; }
+.gauge { position: relative; height: 2.3em; }
+.gauge .bar { position: absolute; left: 0; right: 0; top: .9em; height: .45em; background: var(--raise); border-radius: 999px; }
+.gauge .band { position: absolute; top: .9em; height: .45em; background: rgba(69, 196, 176, .45); border-radius: 999px; }
+.gauge .mark { position: absolute; top: .55em; width: .2em; height: 1.15em; background: var(--amber); border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 .4em var(--amber); }
+.gauge .lab { position: absolute; top: 0; font-size: .66em; color: var(--sub); white-space: nowrap; }
+.gauge .tick { position: absolute; top: 1.55em; font-size: .62em; color: var(--mute); transform: translateX(-50%); }
+</style></head><body><div class="frame">
+<header><span class="tag" style="color:var(--amber)">PLAN · 学習の設定から、総ステップと大きさを出す</span><span class="chip">kohya-ss/sd-scripts と同じ数え方</span></header>
+<div class="main">
+  <div class="form">
+    <div class="seg" id="base" style="align-self:flex-start"><button data-v="sd15" class="on" aria-pressed="true">SD 1.5</button><button data-v="sdxl" aria-pressed="false">SDXL</button></div>
+    <label><span>画像の枚数</span><input type="range" id="n" min="5" max="100" value="20"><output id="nv"></output></label>
+    <label><span>繰り返し</span><input type="range" id="rep" min="1" max="20" value="10"><output id="repv"></output></label>
+    <label><span>エポック</span><input type="range" id="ep" min="1" max="20" value="10"><output id="epv"></output></label>
+    <label><span>バッチ</span><input type="range" id="bs" min="1" max="8" value="2"><output id="bsv"></output></label>
+    <label><span>rank（dim）</span><input type="range" id="rk" min="0" max="5" value="2"><output id="rkv"></output></label>
+    <label><span>保存の間隔</span><input type="range" id="sv" min="1" max="5" value="2"><output id="svv"></output></label>
+  </div>
+  <div class="out">
+    <div class="tiles">
+      <div class="tile"><div class="k">総ステップ</div><div class="v amber num" id="o1"></div></div>
+      <div class="tile"><div class="k">1 枚を学ぶ回数</div><div class="v num" id="o2"></div></div>
+      <div class="tile"><div class="k">LoRA（注意層・fp16）</div><div class="v num" id="o3"></div></div>
+    </div>
+    <canvas id="chart" aria-label="学習率と保存点"></canvas>
+    <div class="gauge" id="gauge"></div>
+  </div>
+</div>
+<div class="hint" id="hint"></div>
+</div>
+<script>"use strict";
+/*INC:_dr.js*/
+const RANKS = [4, 8, 16, 32, 64, 128], PER_RANK = { sd15: 199296, sdxl: 1451520 }, LR = { sd15: "1e-4", sdxl: "1e-4" };
+let base = "sd15";
+const val = (id) => +$(id).value;
+function calc() {
+  const n = val("n"), rep = val("rep"), ep = val("ep"), bs = val("bs"), rank = RANKS[val("rk")], every = val("sv");
+  const perEpoch = Math.ceil(n * rep / bs), total = perEpoch * ep, params = PER_RANK[base] * rank;
+  return { n, rep, ep, bs, rank, every, perEpoch, total, params, seen: rep * ep };
+}
+function chart(c) {
+  const { g, w, h } = fitCanvas($("chart")), fs = parseFloat(getComputedStyle(document.body).fontSize);
+  const L = fs * 2.3, R = 8, Tp = fs * 1.2, B = fs * 1.3, X = (s) => L + (w - L - R) * s / c.total, Y = (v) => Tp + (h - Tp - B) * (1 - v);
+  g.clearRect(0, 0, w, h); g.font = `${fs * .68}px "Yu Gothic UI", sans-serif`;
+  g.strokeStyle = "#3B332C"; g.lineWidth = 1; g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(w - R, Y(0)); g.moveTo(L, Y(1)); g.lineTo(w - R, Y(1)); g.stroke();
+  g.fillStyle = "#776D63"; g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(LR[base], L - 4, Y(1)); g.fillText("0", L - 4, Y(0));
+  g.textAlign = "left"; g.fillStyle = "#A89E91"; g.fillText("学習率（5% ウォームアップ → cosine で下げる例）", L, Tp - fs * .62);
+  // 保存点（エポックの区切り）
+  const saves = []; for (let e = c.every; e <= c.ep; e += c.every) saves.push(e); if (saves[saves.length - 1] !== c.ep) saves.push(c.ep);
+  g.textAlign = "center"; g.textBaseline = "top";
+  saves.forEach((e) => { const x = X(e * c.perEpoch); g.strokeStyle = "rgba(69,196,176,.55)"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, Tp); g.lineTo(x, Y(0)); g.stroke(); g.setLineDash([]); g.fillStyle = "#45C4B0"; g.beginPath(); g.arc(x, Y(0), 3, 0, 7); g.fill(); });
+  const step = Math.max(1, Math.ceil(saves.length / 6)); g.fillStyle = "#45C4B0";
+  saves.forEach((e, i) => { if (i % step === 0 || i === saves.length - 1) g.fillText(`e${e}`, Math.min(w - R - 8, X(e * c.perEpoch)), Y(0) + 3); });
+  const warm = Math.max(1, Math.round(c.total * 0.05)); g.strokeStyle = "#F3B23E"; g.lineWidth = 2; g.beginPath();
+  for (let i = 0; i <= 120; i++) { const s = c.total * i / 120, v = s < warm ? s / warm : 0.5 * (1 + Math.cos(Math.PI * (s - warm) / Math.max(1, c.total - warm))); i ? g.lineTo(X(s), Y(v)) : g.moveTo(X(s), Y(v)); }
+  g.stroke();
+  return saves.length;
+}
+function gauge(total) {
+  const MAX = 6000, pct = (s) => Math.min(100, s / MAX * 100);
+  $("gauge").innerHTML = `<div class="bar"></div><div class="band" style="left:${pct(1000)}%;width:${pct(3000) - pct(1000)}%"></div>
+    <span class="lab" style="left:${pct(1000)}%">よく使われる出発点 1,000〜3,000</span>
+    ${[0, 2000, 4000, 6000].map((s) => `<span class="tick" style="left:${Math.min(97, Math.max(3, pct(s)))}%">${fmt(s)}</span>`).join("")}
+    <div class="mark" style="left:${pct(total)}%"></div>`;
+}
+function render() {
+  const c = calc();
+  $("nv").textContent = c.n; $("repv").textContent = c.rep; $("epv").textContent = c.ep; $("bsv").textContent = c.bs; $("rkv").textContent = c.rank; $("svv").textContent = `${c.every} ep`;
+  $("o1").innerHTML = `${fmt(c.total)} <small>= ⌈${c.n}×${c.rep}÷${c.bs}⌉×${c.ep}</small>`;
+  $("o2").innerHTML = `${c.seen} <small>回</small>`;
+  $("o3").innerHTML = `${(c.params * 2 / 1e6).toFixed(1)} MB <small>${(c.params / 1e6).toFixed(2)}M 個</small>`;
+  const nSaves = chart(c); gauge(c.total);
+  let h = `<b>保存されるのは ${nSaves} 個</b>（e = エポック）。同じシード・同じプロンプトで並べて、特徴が出て、かつプロンプトが効く版を選ぶ。`;
+  if (c.total < 600) h += `<b class="red">総ステップが少なめ：</b>特徴が出ないなら、繰り返しかエポックを増やす。`;
+  else if (c.total > 4000) h += `<b class="red">多め：</b>同じ構図・背景が出たら過学習。早い保存版を使うか、学習率・rank を下げる。`;
+  else h += `数値は出発点。最後はサンプル画像で判断する。`;
+  if (c.n < 10) h += ` 枚数が少ないと背景や服まで覚えやすい。`;
+  if (c.rank >= 64) h += ` rank ${c.rank} は大きめ（ファイルと過学習の両方が増える）。`;
+  $("hint").innerHTML = h;
+  publish({ base, n: c.n, rep: c.rep, ep: c.ep, bs: c.bs, rk: val("rk"), sv: c.every });
+}
+segment($("base"), (v) => { base = v; render(); });
+for (const id of ["n", "rep", "ep", "bs", "rk", "sv"]) $(id).addEventListener("input", render);
+onRestore((s) => { if (s.base === "sd15" || s.base === "sdxl") { base = s.base; setSeg($("base"), base); } for (const id of ["n", "rep", "ep", "bs", "rk", "sv"]) if (Number.isFinite(s[id])) $(id).value = s[id]; render(); });
+new ResizeObserver(() => render()).observe(document.body);
+render(); ready();
+</script></body></html>

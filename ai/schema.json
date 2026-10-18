@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deck-studio.local/schema/deck-v1.json",
+  "title": "deck-studio deck.json v1",
+  "description": "論理キャンバスの px(format が slides なら 1280x720、note なら 768x1024)。フォントサイズは pt。色はスキーム色名(dk1, lt1, dk2, lt2, accent1..6)か 6 桁 hex。",
+  "type": "object",
+  "required": ["version", "slides"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "formatOrigin": {
+      "enum": ["slides", "note"],
+      "description": "形式変換前の種類。元の形式へ戻す際に縮尺と中央配置を復元するためアプリが保存する。"
+    },
+    "format": {
+      "enum": ["slides", "note"],
+      "description": "資料の種類。slides(省略時) = 横 16:9 のスライド 1280x720(発表する)。note = 縦 3:4 のページ 768x1024(本のように単ページ・見開きでめくって読む)"
+    },
+    "binding": {
+      "enum": ["left", "right"],
+      "description": "綴じ方(note のみ)。left(省略時) = 左綴じ、左から右へ読み進める(横書き)。right = 右綴じ、右から左へ(縦書きや漫画)。見開きの表紙の位置とめくる向きが変わる"
+    },
+    "pageNumbers": {
+      "enum": ["center", "outside"],
+      "description": "ページ番号を自動で付ける(省略時は付けない)。center = 下の中央、outside = 下の外側(見開きの外の角。スライドでは右下)。1 枚目(表紙)には付かない"
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "created": { "type": "string" }
+      }
+    },
+    "theme": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fonts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "head": { "type": "string" }, "body": { "type": "string" } }
+        },
+        "colors": {
+          "type": "object",
+          "propertyNames": { "enum": ["dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "grid"] },
+          "additionalProperties": { "$ref": "#/$defs/hex6" }
+        }
+      }
+    },
+    "slides": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/slide" }
+    }
+  },
+  "$defs": {
+    "hex6": { "type": "string", "pattern": "^[0-9A-Fa-f]{6}$" },
+    "colorRef": {
+      "type": "string",
+      "description": "スキーム色名か 6 桁 hex",
+      "pattern": "^(dk1|lt1|dk2|lt2|accent[1-6]|[0-9A-Fa-f]{6})$"
+    },
+    "halign": { "enum": ["left", "center", "right"] },
+    "valign": { "enum": ["top", "middle", "bottom"] },
+    "slide": {
+      "type": "object",
+      "required": ["id", "elements"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "background": {
+          "type": "object",
+          "required": ["color"],
+          "additionalProperties": false,
+          "properties": { "color": { "$ref": "#/$defs/colorRef" } }
+        },
+        "notes": { "type": "string" },
+        "hidePageNumber": { "type": "boolean", "description": "pageNumbers を付ける資料でも、このページには付けない(章の扉・全面の絵など)" },
+        "elements": { "type": "array", "items": { "$ref": "#/$defs/element" } }
+      }
+    },
+    "elementBase": {
+      "type": "object",
+      "required": ["id", "type", "x", "y", "w", "h"],
+      "properties": {
+        "id": { "type": "string", "description": "デッキ内で一意。人が動かしても変わらない" },
+        "name": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number", "minimum": 0 },
+        "h": { "type": "number", "minimum": 0 },
+        "rotation": { "type": "number" },
+        "locked": { "type": "boolean" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "group": { "type": "string", "description": "同じ値の要素はまとめて選択・移動される(カードの箱と文字など)" },
+        "background": { "oneOf": [{ "$ref": "#/$defs/colorRef" }, { "type": "null" }] },
+        "comments": { "type": "array", "items": { "$ref": "#/$defs/objectComment" } }
+      }
+    },
+    "element": {
+      "oneOf": [
+        { "$ref": "#/$defs/textElement" },
+        { "$ref": "#/$defs/shapeElement" },
+        { "$ref": "#/$defs/mathElement" },
+        { "$ref": "#/$defs/imageElement" },
+        { "$ref": "#/$defs/chartElement" },
+        { "$ref": "#/$defs/tableElement" },
+        { "$ref": "#/$defs/embedElement" }
+      ]
+    },
+    "embedElement": {
+      "allOf": [{ "$ref": "#/$defs/elementBase" }],
+      "type": "object",
+      "required": ["src"],
+      "properties": {
+        "type": { "const": "embed" },
+        "src": { "type": "string", "description": "デッキフォルダからの相対パス。自己完結した HTML(外部リソース無し)" },
+        "title": { "type": "string" }
+      }
+    },
+    "run": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "bold": { "type": "boolean" },
+        "italic": { "type": "boolean" },
+        "color": { "$ref": "#/$defs/colorRef" },
+        "fontSize": { "type": "number" }
+      }
+    },
+    "paragraph": {
+      "type": "object",
+      "required": ["runs"],
+      "additionalProperties": false,
+      "properties": {
+        "runs": { "type": "array", "items": { "$ref": "#/$defs/run" } },
+        "bullet": { "type": "boolean" },
+        "level": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "align": { "$ref": "#/$defs/halign" }
+      }
+    },
+    "textElement": {
+      "allOf": [{ "$ref": "#/$defs/elementBase" }],
+      "type": "object",
+      "required": ["paragraphs"],
+      "properties": {
+        "type": { "const": "text" },
+        "role": { "enum": ["title", "body", "caption", null] },
+        "style": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fontSize": { "type": "number", "description": "pt" },
+            "bold": { "type": "boolean" },
+            "italic": { "type": "boolean" },
+            "color": { "$ref": "#/$defs/colorRef" },
+            "align": { "$ref": "#/$defs/halign" },
+            "valign": { "$ref": "#/$defs/valign" },
+            "font": { "enum": ["head", "body"] },
+            "lineHeight": { "type": "number" },
+            "paraSpacing": { "type": "number", "description": "段落後の余白 px" }
+          }
+        },
+        "paragraphs": { "type": "array", "items": { "$ref": "#/$defs/paragraph" } }
+      }
+    },
+    "shapeElement": {
+      "allOf": [{ "$ref": "#/$defs/elementBase" }],
+      "type": "object",
+      "required": ["shape"],
+      "properties": {
+        "type": { "const": "shape" },
+        "shape": { "enum": ["rect", "roundRect", "ellipse", "line", "arrow", "triangle", "diamond", "parallelogram", "trapezoid", "pentagon", "hexagon", "star", "rightArrow", "leftArrow", "upArrow", "downArrow", "doubleArrow", "chevron", "callout", "cylinder", "heart", "polygon"] },
+        "fill": { "oneOf": [{ "$ref": "#/$defs/colorRef" }, { "type": "null" }] },
+        "line": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["color", "width"],
+              "additionalProperties": false,
+              "properties": { "color": { "$ref": "#/$defs/colorRef" }, "width": { "type": "number" } }
+            }
+          ]
+        },
+        "radius": { "type": "number" },
+        "arrowHeadLength": { "type": "number", "minimum": 1 },
+        "arrowHeadWidth": { "type": "number", "minimum": 1 },
+        "shaftRatio": { "type": "number", "minimum": 0.05, "maximum": 0.95 },
+        "headRatio": { "type": "number", "minimum": 0.05, "maximum": 0.45 },
+        "points": { "type": "array", "minItems": 3, "items": { "type": "object", "required": ["x", "y"], "properties": { "x": { "type": "number" }, "y": { "type": "number" } }, "additionalProperties": false } },
+        "lineJoin": { "enum": ["miter", "round"], "description": "直線で囲む図形の角の形。既定は round（rect と triangle は miter）" }
+      }
+    },
+    "objectComment": {
+      "type": "object", "required": ["id", "text", "createdAt"], "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" }, "text": { "type": "string" }, "createdAt": { "type": "string" },
+        "resolved": { "type": "boolean" },
+        "images": { "type": "array", "items": { "type": "object", "required": ["src", "name"], "additionalProperties": false,
+          "properties": { "src": { "type": "string", "description": "デッキフォルダからの画像相対パス（ブラウザでは data URL）" }, "name": { "type": "string" } } } }
+      }
+    },
+    "mathElement": {
+      "allOf": [{ "$ref": "#/$defs/elementBase" }], "type": "object", "required": ["latex"],
+      "properties": { "type": { "const": "math" }, "latex": { "type": "string" }, "fontSize": { "type": "number", "minimum": 1 },
+        "color": { "$ref": "#/$defs/colorRef" }, "displayMode": { "type": "boolean" } }
+    },
+    "imageElement": {
+      "allOf": [{ "$ref": "#/$defs/elementBase" }],
+      "type": "object",
+      "required": ["src"],
+      "properties": {
+        "type": { "const": "image" },
+        "src": { "type": "string", "description": "デッキフォルダからの相対パス(assets/…)" },
+        "fit": { "enum": ["contain", "cover", "fill"] }
+      }
+    },
+    "chartElement": {
+      "allOf": [{ "$ref": "#/$defs/elementBase" }],
+      "type": "object",
+      "required": ["chart"],
+      "properties": {
+        "type": { "const": "chart" },
+        "chart": {
+          "type": "object",
+          "required": ["kind", "labels", "series"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["bar", "hbar", "line", "pie", "doughnut", "area"] },
+            "labels": { "type": "array", "items": { "type": "string" } },
+            "series": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["name", "values"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string" },
+                  "values": { "type": "array", "items": { "type": "number" } }
+                }
+              }
+            },
+            "title": { "type": "string" },
+            "options": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "stacked": { "type": "boolean" },
+                "showValues": { "type": "boolean" },
+                "legend": { "enum": ["none", "bottom", "right"] },
+                "colors": { "type": "array", "items": { "$ref": "#/$defs/colorRef" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tableElement": {
+      "allOf": [{ "$ref": "#/$defs/elementBase" }],
+      "type": "object",
+      "required": ["rows"],
+      "properties": {
+        "type": { "const": "table" },
+        "colW": { "type": "array", "items": { "type": "number" } },
+        "header": { "type": "boolean" },
+        "fontSize": { "type": "number" },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["text"],
+              "additionalProperties": false,
+              "properties": {
+                "text": { "type": "string" },
+                "bold": { "type": "boolean" },
+                "color": { "$ref": "#/$defs/colorRef" },
+                "fill": { "$ref": "#/$defs/colorRef" },
+                "align": { "$ref": "#/$defs/halign" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

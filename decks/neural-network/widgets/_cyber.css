@@ -1,0 +1,25 @@
+/* ウィジェット共通のサイバー配色。各 HTML はこの内容を <style> に埋め込む(自己完結のため、ビルド時に差し込む) */
+:root {
+  --bg: #0B0F1A; --panel: #121A2B; --panel2: #182238; --text: #E6F1FF; --muted: #7C8AA5;
+  --cyan: #00E5FF; --mag: #FF2BD6; --lime: #B6FF3C; --amber: #FFB341; --red: #FF4D6D;
+  --line: rgba(0, 229, 255, 0.22); --grid: rgba(0, 229, 255, 0.08);
+}
+html, body { margin: 0; height: 100%; font-family: Meiryo, "Yu Gothic UI", sans-serif; color: var(--text); background: var(--bg); overflow: hidden; }
+label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+label span b { color: var(--cyan); font-size: 14px; }
+select, button { font: inherit; font-size: 13px; }
+select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--text); }
+input[type=range] { width: 100%; accent-color: var(--cyan); }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+button { padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--cyan); cursor: pointer; }
+button.primary { background: var(--cyan); color: #061018; font-weight: 700; border-color: var(--cyan); }
+button:hover { filter: brightness(1.15); }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.stats div { font-size: 11px; color: var(--muted); }
+.stats b { display: block; font-size: 20px; color: var(--cyan); }
+.stats b.v { color: var(--mag); }
+.hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 0; }
+.msg { font-size: 12px; font-weight: 700; min-height: 1.5em; color: var(--lime); }
+.msg.bad { color: var(--red); }
+.cap { font-size: 11px; color: var(--muted); margin: -6px 0 0 4px; }
+canvas.plot { background: #0E1424; border: 1px solid var(--line); border-radius: 6px; }

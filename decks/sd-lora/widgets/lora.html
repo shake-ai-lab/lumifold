@@ -1,0 +1,199 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LoRA：B·A で ΔW を近似</title>
+<style>/* sd-lora のウィジェット共通（暗室テーマ）。1em = iframe の幅 / --cols（各ウィジェットが決める）。
+   赤 = ノイズ・拡散、琥珀 = 信号・LoRA、青緑 = 文字の条件、青 = 潜在、紫 = 2 つ目のクラス */
+:root {
+  --bg: #15110F; --card: #1C1714; --raise: #26201C; --line: #3B332C; --ink: #EFE7DB; --sub: #A89E91; --mute: #776D63;
+  --red: #FF5A47; --amber: #F3B23E; --teal: #45C4B0; --blue: #7FA2FF; --violet: #C08BFF;
+  --red-soft: rgba(255, 90, 71, .15); --amber-soft: rgba(243, 178, 62, .15); --teal-soft: rgba(69, 196, 176, .15); --violet-soft: rgba(192, 139, 255, .15);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; }
+body { color: var(--ink); font: 400 calc(100vw / var(--cols, 46)) / 1.4 "Yu Gothic UI", "Meiryo UI", "Meiryo", sans-serif; overflow: hidden; }
+.frame { height: 100%; display: flex; flex-direction: column; gap: .55em; padding: .7em .9em .75em; background: var(--card); border: 1px solid var(--line); border-radius: .7em; }
+header { display: flex; align-items: center; gap: .6em; min-height: 1.5em; }
+.tag { font-size: .78em; font-weight: 700; letter-spacing: .08em; color: var(--red); white-space: nowrap; }
+.tag::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .45em; border-radius: 50%; background: currentColor; box-shadow: 0 0 .5em currentColor; vertical-align: .05em; }
+.chip { margin-left: auto; font-size: .72em; padding: .1em .7em; border-radius: 999px; background: var(--raise); color: var(--sub); white-space: nowrap; }
+.num, output { font-family: Consolas, "Cascadia Mono", monospace; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--raise); border-radius: 999px; padding: .2em .85em; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.btn:hover { border-color: var(--amber); color: var(--amber); }
+.btn.primary { background: var(--amber); border-color: var(--amber); color: #261A06; }
+.btn.primary:hover { filter: brightness(1.08); color: #261A06; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
+.seg button { border: 0; background: transparent; padding: .2em .75em; font-size: .82em; color: var(--sub); white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--raise); color: var(--ink); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amber); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .45em .9em; }
+label { display: inline-flex; align-items: center; gap: .45em; font-size: .85em; color: var(--sub); white-space: nowrap; }
+label b { color: var(--ink); }
+input[type=range] { width: 7.5em; accent-color: var(--amber); margin: 0; }
+output { color: var(--ink); min-width: 2.4em; display: inline-block; }
+.tile { background: var(--raise); border-radius: .45em; padding: .3em .6em .35em; min-width: 0; }
+.tile .k { font-size: .72em; color: var(--sub); white-space: nowrap; }
+.tile .v { font-size: 1.25em; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hint { font-size: .8em; color: var(--sub); line-height: 1.45; }
+.hint b { color: var(--ink); }
+.red { color: var(--red); } .amber { color: var(--amber); } .teal { color: var(--teal); } .blue { color: var(--blue); } .violet { color: var(--violet); } .sub { color: var(--sub); }
+canvas { display: block; }
+.m { font-family: "Cambria Math", Cambria, "Times New Roman", serif; font-size: 1.08em; }
+
+:root { --cols: 56; --m: 7.2em; }
+.main { flex: 1; min-height: 0; display: flex; gap: .9em; }
+.mats { display: grid; grid-template-columns: calc(var(--m) / 2 + 2.6em) var(--m) 1.3em var(--m) var(--m); grid-template-rows: calc(var(--m) / 2 + 1.3em) var(--m) auto; column-gap: .45em; row-gap: .25em; align-self: center; }
+.mats canvas { image-rendering: pixelated; box-shadow: 0 0 0 1px var(--line); background: #1B1714; }
+.cellA { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: .15em; }
+.cellB { display: flex; align-items: flex-end; justify-content: flex-end; gap: .3em; }
+.lab { font-size: .72em; color: var(--sub); line-height: 1.25; white-space: nowrap; }
+.lab b { color: var(--amber); }
+.cellB .lab { text-align: right; }
+.op { align-self: center; text-align: center; font-size: 1.5em; color: var(--sub); }
+.under { text-align: center; }
+#BA { box-shadow: 0 0 0 1px var(--amber); }
+.side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .35em; }
+#chart { flex: 1; min-height: 0; width: 100%; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: .3em; }
+.tiles .v { font-size: 1.05em; }
+.sd { font-size: .78em; color: var(--sub); background: var(--raise); border-radius: .45em; padding: .3em .7em; line-height: 1.5; }
+.sd b { color: var(--ink); } .sd .amber { color: var(--amber); font-weight: 700; }
+</style></head><body><div class="frame">
+<header><span class="tag" style="color:var(--amber)">LoRA · ΔW を B·A で近似する（d = k = 32 の例）</span><span class="chip">その場で勾配降下して学習</span></header>
+<div class="main">
+  <div class="mats">
+    <div></div>
+    <div class="cellA"><span class="lab"><b>A</b>（r×32）ガウス乱数で開始</span><canvas id="A" aria-label="行列 A"></canvas></div>
+    <div></div><div></div><div></div>
+    <div class="cellB"><span class="lab"><b>B</b><br>（32×r）<br>0 で開始</span><canvas id="B" aria-label="行列 B"></canvas></div>
+    <canvas id="BA" aria-label="B と A の積"></canvas>
+    <div class="op">≈</div>
+    <canvas id="TG" aria-label="目標の差分"></canvas>
+    <canvas id="ER" aria-label="残りの差"></canvas>
+    <div></div>
+    <div class="lab under">B·A ＝ 学習中の ΔW</div><div></div>
+    <div class="lab under">目標の ΔW*</div>
+    <div class="lab under">残りの差</div>
+  </div>
+  <div class="side">
+    <canvas id="chart" aria-label="誤差の推移"></canvas>
+    <div class="tiles">
+      <div class="tile"><div class="k">再現度（今 / rank r の上限）</div><div class="v num"><span id="rep" class="amber"></span><span class="sub"> / </span><span id="best"></span></div></div>
+      <div class="tile"><div class="k">学習する数 r(d+k) / d·k</div><div class="v num" id="par"></div></div>
+    </div>
+  </div>
+</div>
+<div class="sd" id="sd"></div>
+<div class="controls">
+  <label>rank <b>r</b><input type="range" id="r" min="1" max="16" value="4" aria-label="rank"><output id="rv"></output></label>
+  <button class="btn primary" id="play">⏸ 止める</button>
+  <button class="btn" id="reset">最初から（B = 0）</button>
+  <span class="hint" id="hint" style="flex:1;min-width:12em"></span>
+</div>
+</div>
+<script>"use strict";
+// sd-lora のウィジェット共通: 乱数、SD 1.5 と cosine のノイズスケジュール、canvas の解像度合わせ、状態の保存と復元
+const $ = (id) => document.getElementById(id);
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function gauss(r) { const u = Math.max(r(), 1e-12), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const T = 1000;
+// SD 1.5: scaled linear（β の平方根を 0.00085→0.012 で線形に並べて 2 乗）
+const ABAR_SD = (() => { const a = []; let p = 1; const b0 = Math.sqrt(0.00085), b1 = Math.sqrt(0.012); for (let i = 0; i < T; i++) { const b = (b0 + (b1 - b0) * i / (T - 1)) ** 2; p *= 1 - b; a.push(p); } return a; })();
+// cosine（Nichol & Dhariwal 2021、s = 0.008、β ≤ 0.999）
+const ABAR_COS = (() => { const f = (t) => Math.cos((t / T + 0.008) / 1.008 * Math.PI / 2) ** 2; const a = []; let p = 1; for (let i = 0; i < T; i++) { p *= 1 - Math.min(1 - f(i + 1) / f(i), 0.999); a.push(p); } return a; })();
+function fitCanvas(c) {
+  const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0);
+  return { g, w: r.width, h: r.height };
+}
+const fmt = (v, n = 0) => v.toLocaleString("en-US", { minimumFractionDigits: n, maximumFractionDigits: n });
+function segment(el, onPick) {
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { setSeg(el, b.dataset.v); onPick(b.dataset.v); }));
+}
+function setSeg(el, v) { el.querySelectorAll("button").forEach((b) => { const on = b.dataset.v === String(v); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); }); }
+// アプリに状態を預け、読み直したときに戻す（deck-studio:widget-state / widget-restore）
+let publishing = false;
+function publish(state) { if (publishing && parent !== window) parent.postMessage({ type: "deck-studio:widget-state", state }, "*"); }
+function onRestore(fn) {
+  window.addEventListener("message", (e) => {
+    if (e.source !== parent || e.data?.type !== "deck-studio:widget-restore" || !e.data.state) return;
+    const p = publishing; publishing = false; fn(e.data.state); publishing = p;
+  });
+}
+function ready() { publishing = true; if (parent !== window) parent.postMessage({ type: "deck-studio:widget-ready" }, "*"); }
+
+const D = 32, LR = 0.12, PER_FRAME = 2, MAX_STEP = 1500;
+// 目標 ΔW* = Σ σ_i u_i v_iᵀ（u, v は DCT の基底を少し並べ替えたもの。特異値 σ_i がなだらかに減る）
+const dct = (f) => Array.from({ length: D }, (_, n) => (f === 0 ? Math.sqrt(1 / D) : Math.sqrt(2 / D)) * Math.cos(Math.PI * (n + 0.5) * f / D));
+const r0 = rng(3), order = () => Array.from({ length: D }, (_, f) => [f, f + r0() * 6]).sort((a, b) => a[1] - b[1]).map((a) => a[0]);
+const U = order().map(dct), V = order().map(dct), SV = Array.from({ length: D }, (_, i) => Math.exp(-i / 4) + 0.01);
+const TG = Array.from({ length: D }, (_, i) => Array.from({ length: D }, (_, j) => SV.reduce((s, sv, k) => s + sv * U[k][i] * V[k][j], 0)));
+const TOT = SV.reduce((s, v) => s + v * v, 0);
+let r = 4, A, B, step, losses, playing = true, raf = 0;
+const optimum = () => SV.slice(r).reduce((s, v) => s + v * v, 0) / TOT;
+function init() {
+  const g = rng(11 + r); A = Array.from({ length: r }, () => Array.from({ length: D }, () => gauss(g) / Math.sqrt(D)));
+  B = Array.from({ length: D }, () => new Array(r).fill(0)); step = 0; losses = [1];
+}
+const prod = () => B.map((row) => Array.from({ length: D }, (_, j) => row.reduce((s, b, k) => s + b * A[k][j], 0)));
+function iterate() {
+  const E = prod().map((row, i) => row.map((p, j) => p - TG[i][j]));
+  const gB = E.map((row) => Array.from({ length: r }, (_, k) => row.reduce((s, e, j) => s + e * A[k][j], 0)));
+  const gA = Array.from({ length: r }, (_, k) => Array.from({ length: D }, (_, j) => E.reduce((s, row, i) => s + B[i][k] * row[j], 0)));
+  B = B.map((row, i) => row.map((b, k) => b - LR * gB[i][k])); A = A.map((row, k) => row.map((a, j) => a - LR * gA[k][j]));
+  step++;
+}
+const relErr = () => { const P = prod(); let s = 0; for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) s += (P[i][j] - TG[i][j]) ** 2; return s / TOT; };
+// 正 = 琥珀、負 = 青、0 = 地の色
+function heat(id, M, vmax, cssW, cssH) {
+  const c = $(id), rows = M.length, cols = M[0].length; c.style.width = cssW; c.style.height = cssH;
+  c.width = cols; c.height = rows; const g = c.getContext("2d"), im = g.createImageData(cols, rows);
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+    const v = vmax > 0 ? Math.max(-1, Math.min(1, M[i][j] / vmax)) : 0, a = Math.abs(v) ** 0.75, p = (i * cols + j) * 4, to = v >= 0 ? [243, 178, 62] : [127, 162, 255];
+    im.data[p] = 27 + (to[0] - 27) * a; im.data[p + 1] = 23 + (to[1] - 23) * a; im.data[p + 2] = 20 + (to[2] - 20) * a; im.data[p + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+}
+const vmax = Math.max(...TG.flat().map(Math.abs)), maxAbs = (M) => Math.max(1e-9, ...M.flat().map(Math.abs));
+function chart() {
+  const { g, w, h } = fitCanvas($("chart")), fs = parseFloat(getComputedStyle(document.body).fontSize);
+  const L = fs * 1.9, R = 6, Tp = fs * 1.15, Bm = fs * 1.3, xmax = Math.max(300, losses.length - 1), X = (i) => L + (w - L - R) * i / xmax, Y = (v) => Tp + (h - Tp - Bm) * (1 - v);
+  g.clearRect(0, 0, w, h); g.font = `${fs * .7}px "Yu Gothic UI", sans-serif`;
+  g.strokeStyle = "#3B332C"; g.lineWidth = 1; g.fillStyle = "#776D63"; g.textBaseline = "middle"; g.textAlign = "right";
+  for (const v of [0, .5, 1]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(w - R, Y(v)); g.stroke(); g.fillText(v.toFixed(1), L - 4, Y(v)); }
+  g.textAlign = "left"; g.fillStyle = "#A89E91"; g.fillText("残りの差（相対）", 2, Tp - fs * .6);
+  g.textAlign = "right"; g.textBaseline = "top"; g.fillStyle = "#776D63"; g.fillText(`ステップ ${step}`, w - R, h - Bm + 3);
+  const o = optimum(); g.setLineDash([4, 3]); g.strokeStyle = "#F3B23E"; g.beginPath(); g.moveTo(L, Y(o)); g.lineTo(w - R, Y(o)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "#F3B23E"; g.textBaseline = "bottom"; g.fillText(`rank ${r} で届く下限（SVD）`, w - R, Y(o) - 2);
+  g.strokeStyle = "#EFE7DB"; g.lineWidth = 1.8; g.beginPath(); losses.forEach((v, i) => (i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)))); g.stroke();
+}
+function render() {
+  const m = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--m")) || 7.2, side = `calc(var(--m) * ${r / D})`;
+  heat("A", A, maxAbs(A), "var(--m)", side); heat("B", B, maxAbs(B), side, "var(--m)");
+  const P = prod(); heat("BA", P, vmax, "var(--m)", "var(--m)"); heat("TG", TG, vmax, "var(--m)", "var(--m)");
+  heat("ER", P.map((row, i) => row.map((p, j) => TG[i][j] - p)), vmax, "var(--m)", "var(--m)");
+  const e = losses[losses.length - 1], o = optimum();
+  $("rv").textContent = r; $("rep").textContent = `${((1 - e) * 100).toFixed(1)}%`; $("best").textContent = `${((1 - o) * 100).toFixed(1)}%`;
+  $("par").innerHTML = `${r * 2 * D} / ${D * D} <span class="sub" style="font-size:.75em">(${(r * 2 * D / (D * D) * 100).toFixed(1)}%)</span>`;
+  const sd15 = 199296 * r, sdxl = 1451520 * r;
+  $("sd").innerHTML = `同じ r を <b>SD 1.5</b> の注意層（q·k·v·out、16 ブロック × 自己/クロス）に入れると <span class="amber">${fmt(sd15)}</span> 個 ＝ UNet 8.6 億の <b>${(sd15 / 8.6e6).toFixed(2)}%</b>、fp16 で <b>${(sd15 * 2 / 1e6).toFixed(1)} MB</b>　／　<b>SDXL</b>：${fmt(sdxl)} 個・${(sdxl * 2 / 1e6).toFixed(1)} MB`;
+  $("hint").innerHTML = step === 0 ? "<b>B = 0 なので B·A = 0。</b>学習の最初は元のモデルとまったく同じ" : Math.abs(e - o) < 0.003 ? `<b>上限に到達。</b>rank ${r} ではこれ以上近づけない → r を上げると上限も上がる` : "<b>B と A を同時に更新中。</b>W₀ は一切動かさない";
+  $("play").textContent = playing ? "⏸ 止める" : step >= MAX_STEP ? "▶ 続きは無し" : "▶ 学習する";
+  chart();
+}
+function loop() {
+  if (!playing) return;
+  for (let i = 0; i < PER_FRAME && step < MAX_STEP; i++) { iterate(); losses.push(relErr()); }
+  const e = losses[losses.length - 1];
+  if (step >= MAX_STEP || (step > 60 && Math.abs(e - optimum()) < 1e-4)) playing = false;
+  render(); if (playing) raf = requestAnimationFrame(loop);
+}
+function start() { cancelAnimationFrame(raf); playing = true; raf = requestAnimationFrame(loop); }
+$("r").addEventListener("input", (e) => { r = +e.target.value; init(); render(); start(); publish({ r }); });
+$("reset").addEventListener("click", () => { init(); playing = false; render(); setTimeout(start, 400); });
+$("play").addEventListener("click", () => { if (playing) { playing = false; render(); } else if (step < MAX_STEP) start(); });
+onRestore((s) => { if (Number.isFinite(s.r)) { r = Math.max(1, Math.min(16, s.r | 0)); $("r").value = r; init(); render(); start(); } });
+new ResizeObserver(() => render()).observe(document.body);
+init(); render(); start(); ready();
+</script></body></html>

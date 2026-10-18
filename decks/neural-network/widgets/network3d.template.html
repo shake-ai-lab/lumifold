@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>3D ネットワーク: 信号の流れ</title>
+<style>/*CYBER*/
+  .wrap { position:relative; height:100%; }
+  canvas { display:block; width:100%; height:100%; cursor:grab; }
+  .panel { position:absolute; left:12px; top:12px; width:200px; display:flex; flex-direction:column; gap:8px; background:rgba(18,26,43,0.9); border:1px solid var(--line); border-radius:6px; padding:10px; }
+  .stats1 { font-size:12px; line-height:1.8; color:var(--muted); }
+  .stats1 b { color:var(--cyan); }
+  .phase { font-size:13px; font-weight:700; color:var(--lime); min-height:1.4em; }
+  .lbl { position:absolute; font-size:11px; color:var(--muted); pointer-events:none; transform:translate(-50%, 0); white-space:nowrap; text-shadow:0 0 6px #0B0F1A; }
+  .legend { position:absolute; right:12px; bottom:10px; font-size:11px; color:var(--muted); background:rgba(18,26,43,0.85); padding:4px 8px; border-radius:6px; border:1px solid var(--line); }
+  .legend i { display:inline-block; width:10px; height:3px; margin:0 4px 2px 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="gl"></canvas>
+  <div class="panel">
+    <div class="btns">
+      <button id="fwd" class="primary">▶ 順伝播</button>
+      <button id="bwd">◀ 逆伝播</button>
+      <button id="loop">⟳ 自動</button>
+    </div>
+    <div class="phase" id="phase">待機中</div>
+    <div class="stats1">層: <b>3 → 5 → 5 → 2</b><br>重みの数: <b>50</b><br>周回: <b id="iter">0</b></div>
+  </div>
+  <div class="lbl" id="l0">入力層</div><div class="lbl" id="l1">隠れ層 1</div><div class="lbl" id="l2">隠れ層 2</div><div class="lbl" id="l3">出力層</div>
+  <div class="legend"><i style="background:#00E5FF"></i>正の重み <i style="background:#FF2BD6"></i>負の重み ・ 太さ = 大きさ ・ ドラッグで回転</div>
+</div>
+<script>/*THREE*/</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("gl");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0B0F1A, 14, 30);
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+  const key = new THREE.PointLight(0x00E5FF, 40, 40); key.position.set(4, 6, 6); scene.add(key);
+  const fill = new THREE.PointLight(0xFF2BD6, 25, 40); fill.position.set(-6, -3, -4); scene.add(fill);
+
+  // 層: 各層のノードを y-z 平面のリングに並べて 3D らしく
+  const sizes = [3, 5, 5, 2], xs = [-6, -2, 2, 6], radii = [0.9, 1.5, 1.5, 0.7];
+  const colors = [0xB6FF3C, 0x00E5FF, 0x00E5FF, 0xFF2BD6];
+  const nodes = [], nodePos = [];
+  sizes.forEach((n, l) => {
+    const layer = [], pos = [];
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2 + (l % 2 ? Math.PI / n : 0);
+      const p = new THREE.Vector3(xs[l], radii[l] * Math.cos(a), radii[l] * Math.sin(a));
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.26, 24, 24), new THREE.MeshStandardMaterial({ color: 0x182238, emissive: colors[l], emissiveIntensity: 0.35, roughness: 0.3, metalness: 0.2 }));
+      m.position.copy(p); scene.add(m); layer.push(m); pos.push(p);
+    }
+    nodes.push(layer); nodePos.push(pos);
+  });
+  // 重みとエッジ
+  let seed = 3; const rand = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const edges = [];
+  for (let l = 0; l < sizes.length - 1; l++) for (let i = 0; i < sizes[l]; i++) for (let j = 0; j < sizes[l + 1]; j++) {
+    const w = (rand() * 2 - 1) * 1.6;
+    const geo = new THREE.BufferGeometry().setFromPoints([nodePos[l][i], nodePos[l + 1][j]]);
+    const mat = new THREE.LineBasicMaterial({ transparent: true });
+    const line = new THREE.Line(geo, mat); scene.add(line);
+    edges.push({ l, i, j, w, line, mat });
+  }
+  function styleEdges() {
+    for (const e of edges) { const m = Math.min(1, Math.abs(e.w) / 1.6); e.mat.color.set(e.w > 0 ? 0x00E5FF : 0xFF2BD6); e.mat.opacity = 0.12 + 0.7 * m; }
+  }
+  styleEdges();
+  // パルス(信号)のプール
+  const pulseGeo = new THREE.SphereGeometry(0.09, 10, 10);
+  const pulses = [];
+  function spawnPulses(l, backward) {
+    const list = edges.filter((e) => e.l === l);
+    for (const e of list) {
+      const m = new THREE.Mesh(pulseGeo, new THREE.MeshBasicMaterial({ color: backward ? 0xFF2BD6 : 0xB6FF3C }));
+      const from = backward ? nodePos[l + 1][e.j] : nodePos[l][e.i], to = backward ? nodePos[l][e.i] : nodePos[l + 1][e.j];
+      m.position.copy(from); scene.add(m); pulses.push({ m, from, to, t: 0, e, backward });
+    }
+  }
+  // アニメーション状態機械
+  let mode = "idle", phase = 0, phaseT = 0, loop = false, iter = 0;
+  const PHASE_MS = 650;
+  function start(m) { mode = m; phase = 0; phaseT = 0; spawnPulses(m === "fwd" ? 0 : sizes.length - 2, m === "bwd"); flashLayer(m === "fwd" ? 0 : sizes.length - 1); setPhaseText(); }
+  function setPhaseText() {
+    const names = ["入力", "隠れ 1", "隠れ 2", "出力"];
+    if (mode === "fwd") $("phase").textContent = `順伝播: ${names[phase]} → ${names[phase + 1]} へ信号を送る`;
+    else if (mode === "bwd") { const l = sizes.length - 2 - phase; $("phase").textContent = `逆伝播: ${names[l + 1]} → ${names[l]} へ誤差を戻し、重みを修正`; }
+    else $("phase").textContent = loop ? "自動ループ中" : "待機中";
+  }
+  function flashLayer(l) { for (const n of nodes[l]) n.material.emissiveIntensity = 1.6; }
+  function tick(dt) {
+    for (const layer of nodes) for (const n of layer) n.material.emissiveIntensity += (0.35 - n.material.emissiveIntensity) * Math.min(1, dt * 3);
+    if (mode === "idle") { if (loop) start("fwd"); return; }
+    phaseT += dt * 1000;
+    const t = Math.min(1, phaseT / PHASE_MS);
+    for (const p of pulses) { p.t = t; p.m.position.lerpVectors(p.from, p.to, t); p.m.scale.setScalar(0.7 + 0.6 * Math.sin(t * Math.PI)); }
+    if (t >= 1) {
+      for (const p of pulses) scene.remove(p.m); pulses.length = 0;
+      if (mode === "fwd") { flashLayer(phase + 1); phase++; if (phase < sizes.length - 1) { spawnPulses(phase, false); phaseT = 0; setPhaseText(); } else finish(); }
+      else { const l = sizes.length - 2 - phase; flashLayer(l);
+        for (const e of edges) if (e.l === l) e.w = Math.max(-1.6, Math.min(1.6, e.w + (rand() - 0.5) * 0.6)); styleEdges(); // 重みが変わる
+        phase++; if (phase < sizes.length - 1) { spawnPulses(sizes.length - 2 - phase, true); phaseT = 0; setPhaseText(); } else finish(); }
+    }
+  }
+  function finish() {
+    if (mode === "fwd" && loop) { start("bwd"); return; }
+    if (mode === "bwd") iter++, $("iter").textContent = iter;
+    mode = "idle"; setPhaseText();
+  }
+  // カメラ
+  let theta = 0.35, phi = 1.25, dist = 13, baseDist = 13, drag = null, idle = 0;
+  function placeCamera() {
+    camera.position.set(dist * Math.sin(phi) * Math.sin(theta), dist * Math.cos(phi), dist * Math.sin(phi) * Math.cos(theta));
+    camera.lookAt(0, 0, 0);
+  }
+  canvas.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", (e) => { if (!drag) return; theta += (e.clientX - drag[0]) * 0.008; phi = Math.max(0.3, Math.min(1.5, phi - (e.clientY - drag[1]) * 0.006)); drag = [e.clientX, e.clientY]; idle = 0; });
+  canvas.addEventListener("pointerup", () => (drag = null));
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); baseDist = Math.max(8, Math.min(26, baseDist + e.deltaY * 0.01)); fitDist(); }, { passive: false });
+  function fitDist() { dist = baseDist * Math.max(1, 1.5 / camera.aspect); }
+  // 層ラベルを投影して配置
+  const labels = [0, 1, 2, 3].map((i) => $("l" + i));
+  function placeLabels() {
+    const r = canvas.getBoundingClientRect();
+    labels.forEach((el, l) => {
+      const v = new THREE.Vector3(xs[l], -radii[l] - 0.7, 0).project(camera);
+      el.style.left = ((v.x + 1) / 2 * r.width) + "px"; el.style.top = ((1 - v.y) / 2 * r.height) + "px";
+      el.style.opacity = v.z < 1 ? 1 : 0;
+    });
+  }
+  let last = performance.now();
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!drag) { idle += dt; if (idle > 1.5) theta += dt * 0.15; } // 触っていなければゆっくり回る
+    tick(dt); placeCamera(); placeLabels(); renderer.render(scene, camera);
+  }
+  function resize() {
+    const w = canvas.clientWidth || 600, h = canvas.clientHeight || 400;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); fitDist();
+    // 狭い枠(表紙の飾り)ではパネルを隠し、勝手に動き続ける
+    const compact = w < 700;
+    document.querySelector(".panel").style.display = compact ? "none" : "";
+    document.querySelector(".legend").style.display = compact ? "none" : "";
+    document.body.style.background = document.documentElement.style.background = compact ? "transparent" : "";
+    if (compact && !loop) { loop = true; $("loop").textContent = "⏸ 停止"; }
+  }
+  $("fwd").onclick = () => { if (mode === "idle") start("fwd"); };
+  $("bwd").onclick = () => { if (mode === "idle") start("bwd"); };
+  $("loop").onclick = () => { loop = !loop; $("loop").textContent = loop ? "⏸ 停止" : "⟳ 自動"; setPhaseText(); };
+  new ResizeObserver(resize).observe(canvas);
+  resize(); placeCamera(); animate(performance.now());
+})();
+</script>
+</body>
+</html>

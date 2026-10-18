@@ -1,0 +1,14 @@
+# 改行は LF にそろえる(Windows と Linux で差分が出ないように)
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.icns binary
+
+# 生成物。差分の表示では畳む(元は *.template.html・tools/third-party-licenses.mjs)
+decks/*/widgets/*.html linguist-generated=true
+tools/fixtures/*/widgets/*.html linguist-generated=true
+*.template.html linguist-generated=false
+THIRD_PARTY_LICENSES.txt linguist-generated=true

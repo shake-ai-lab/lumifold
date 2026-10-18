@@ -1,0 +1,56 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const browser = await chromium.launch({channel:'msedge',headless:true});
+const page = await browser.newPage({viewport:{width:1600,height:1000}});
+const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+const fixture={id:'table-test',type:'table',x:200,y:170,w:800,h:300,fontSize:20,colW:[240,560],header:true,
+  rows:[[{text:'項目'},{text:'値'}],[{text:'日本語',fill:'accent3',color:'dk1',bold:true},{text:'10',align:'right'}],[{text:'説明'},{text:'複数\n行'}]]};
+const box=page.locator('.fit-inner [data-id="table-test"]');
+const table=page.locator('.table-edit');
+const get=()=>page.evaluate(()=>{const s=window.__deckStore.getState();return s.deck.slides[s.current].elements.find(e=>e.id==='table-test');});
+const measure=sel=>page.locator(sel).evaluate(root=>[...root.querySelectorAll('td')].map(td=>{const r=td.getBoundingClientRect(),s=getComputedStyle(td);return {text:td.innerText,x:r.x,y:r.y,w:r.width,h:r.height,bg:s.backgroundColor,color:s.color,size:s.fontSize,weight:s.fontWeight,align:s.textAlign};}));
+try{
+ await page.goto('http://127.0.0.1:1420/?deck=/tools/fixtures/demo/deck.json');await page.locator('.thumb').first().waitFor();
+ await page.evaluate(el=>window.__deckStore.getState().addElement(el),fixture);
+ const before=await measure('.fit-inner [data-id="table-test"]');
+ await box.locator('tr').nth(1).locator('td').nth(1).dblclick();await table.waitFor();
+ assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label')),'2行 2列');
+ assert.deepEqual(await measure('.table-edit'),before);
+ // 編集バーは画面座標で表の上に出る(スライドの外枠で切れない)
+ assert(await page.locator('.table-edit-bar').evaluate(bar=>bar.getBoundingClientRect().bottom <= document.querySelector('.table-edit').getBoundingClientRect().top));
+ fs.mkdirSync('tools/shots-table-edit',{recursive:true});await page.screenshot({path:'tools/shots-table-edit/editing.png'});
+ await page.keyboard.press('Control+Enter');await table.waitFor({state:'detached'});assert.deepEqual(await get(),fixture);
+ console.log('PASS: clicked cell focused; layout, colors and dimensions preserved; toolbar above table; no-op unchanged');
+ await box.locator('tr').nth(1).locator('td').nth(1).dblclick();
+ await page.keyboard.press('Control+a');await page.keyboard.insertText('42');await page.keyboard.press('Tab');
+ assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label')),'3行 1列');
+ await page.keyboard.press('Shift+Tab');assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label')),'2行 2列');
+ await page.getByRole('button',{name:'完了',exact:true}).click();
+ assert.equal((await get()).rows[1][1].text,'42');assert.deepEqual((await get()).rows[1][0],fixture.rows[1][0]);
+ await page.keyboard.press('Control+z');assert.deepEqual(await get(),fixture);
+ console.log('PASS: cell editing, Tab/Shift+Tab, commit and undo');
+ await box.locator('td').first().dblclick();
+ await page.getByRole('button',{name:'＋行',exact:true}).click();
+ await page.keyboard.insertText('追加行');
+ await page.getByRole('button',{name:'＋列',exact:true}).click();await page.keyboard.insertText('追加列');
+ await page.getByRole('button',{name:'完了',exact:true}).click();
+ let changed=await get();assert.equal(changed.rows.length,4);assert.equal(changed.rows[0].length,3);
+ assert.equal(changed.rows[1][0].text,'追加行');assert.equal(changed.rows[1][1].text,'追加列');
+ assert.equal(changed.x,fixture.x);assert.equal(changed.h,fixture.h);
+ console.log('PASS: add rows/columns, refocus, preserve text and geometry');
+ await box.locator('tr').nth(1).locator('td').nth(1).dblclick();
+ await page.getByRole('button',{name:'－列',exact:true}).click();await page.getByRole('button',{name:'－行',exact:true}).click();
+ await page.keyboard.press('Escape');assert.deepEqual(await get(),changed);
+ console.log('PASS: cancel discards structural changes');
+ await box.click({button:'right',position:{x:20,y:20}});await page.getByRole('button',{name:'表のセルを編集 F2',exact:true}).click();await table.waitFor();
+ await page.keyboard.press('Control+a');await page.keyboard.insertText('右クリック');
+ await page.locator('.thumb').nth(1).click();await table.waitFor({state:'detached'});await page.locator('.thumb').first().click();
+ assert.equal((await get()).rows[0][0].text,'右クリック');
+ await box.click({position:{x:20,y:20}});await page.getByRole('button',{name:'セルを編集',exact:true}).click();await table.waitFor();
+ await page.keyboard.press('Control+a');await page.keyboard.insertText('プレゼンへ');
+ await page.getByRole('button',{name:'プレゼン開始',exact:true}).click();
+ assert.equal((await get()).rows[0][0].text,'プレゼンへ');assert.equal(await table.count(),0);
+ console.log('PASS: right-click/sidebar entry, outside-click commit, commit before presentation');
+ assert.deepEqual(errors,[]);
+}finally{await browser.close();}

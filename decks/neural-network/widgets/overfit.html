@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>過学習を見る</title>
+<style>
+/* ウィジェット共通のサイバー配色。各 HTML はこの内容を <style> に埋め込む(自己完結のため、ビルド時に差し込む) */
+:root {
+  --bg: #0B0F1A; --panel: #121A2B; --panel2: #182238; --text: #E6F1FF; --muted: #7C8AA5;
+  --cyan: #00E5FF; --mag: #FF2BD6; --lime: #B6FF3C; --amber: #FFB341; --red: #FF4D6D;
+  --line: rgba(0, 229, 255, 0.22); --grid: rgba(0, 229, 255, 0.08);
+}
+html, body { margin: 0; height: 100%; font-family: Meiryo, "Yu Gothic UI", sans-serif; color: var(--text); background: var(--bg); overflow: hidden; }
+label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+label span b { color: var(--cyan); font-size: 14px; }
+select, button { font: inherit; font-size: 13px; }
+select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--text); }
+input[type=range] { width: 100%; accent-color: var(--cyan); }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+button { padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel2); color: var(--cyan); cursor: pointer; }
+button.primary { background: var(--cyan); color: #061018; font-weight: 700; border-color: var(--cyan); }
+button:hover { filter: brightness(1.15); }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.stats div { font-size: 11px; color: var(--muted); }
+.stats b { display: block; font-size: 20px; color: var(--cyan); }
+.stats b.v { color: var(--mag); }
+.hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 0; }
+.msg { font-size: 12px; font-weight: 700; min-height: 1.5em; color: var(--lime); }
+.msg.bad { color: var(--red); }
+.cap { font-size: 11px; color: var(--muted); margin: -6px 0 0 4px; }
+canvas.plot { background: #0E1424; border: 1px solid var(--line); border-radius: 6px; }
+
+
+  .wrap { display:flex; height:100%; gap:14px; padding:12px; box-sizing:border-box; }
+  .controls { width:210px; flex:none; display:flex; flex-direction:column; gap:8px; }
+  label span b { font-size:16px; }
+  .stats1 { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12px; line-height:1.8; }
+  .stats1 b { color:var(--cyan); } .stats1 b.v { color:var(--mag); }
+  .msg { min-height:3em; }
+  .plots { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+  .plots canvas { width:100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label><span>モデルの複雑さ(多項式の次数) = <b id="dv">3</b></span><input id="deg" type="range" min="0" max="12" step="1" value="3"></label>
+    <div class="stats1">
+      訓練誤差 <b id="tr">–</b><br>
+      検証誤差 <b class="v" id="va">–</b>
+    </div>
+    <div class="msg" id="msg"></div>
+    <p class="hint">シアンの点(訓練)に曲線を合わせる。次数を上げるほど訓練誤差は下がるが、ある所からマゼンタの点(検証)への誤差が上がり始める = 過学習。破線が本当の関係。</p>
+  </div>
+  <div class="plots">
+    <canvas id="fit" class="plot"></canvas>
+    <div class="cap">データと当てはめた曲線</div>
+    <canvas id="err" class="plot"></canvas>
+    <div class="cap">次数ごとの誤差(シアン: 訓練、マゼンタ: 検証)</div>
+  </div>
+</div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let seed = 11;
+  const rand = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const randn = () => { const u = rand() || 1e-9, v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const truth = (x) => Math.sin(2 * Math.PI * x);
+  const mk = (n) => Array.from({ length: n }, () => { const x = rand(); return { x, y: truth(x) + randn() * 0.3 }; });
+  const train = mk(16), val = mk(16);
+  const MAXD = 12;
+  const sx = (x) => x * 2 - 1;
+  function fit(pts, d) {
+    const n = d + 1, A = Array.from({ length: n }, () => new Array(n).fill(0)), b = new Array(n).fill(0);
+    for (const p of pts) { const xs = sx(p.x), pw = []; let v = 1; for (let i = 0; i < n; i++) { pw.push(v); v *= xs; }
+      for (let i = 0; i < n; i++) { b[i] += pw[i] * p.y; for (let j = 0; j < n; j++) A[i][j] += pw[i] * pw[j]; } }
+    for (let i = 0; i < n; i++) A[i][i] += 1e-6;
+    for (let c = 0; c < n; c++) { let piv = c; for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]]; [b[c], b[piv]] = [b[piv], b[c]];
+      for (let r = 0; r < n; r++) { if (r === c || Math.abs(A[c][c]) < 1e-300) continue; const f = A[r][c] / A[c][c]; for (let k = c; k < n; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; } }
+    return b.map((v, i) => v / A[i][i]);
+  }
+  const evalPoly = (co, x) => { let v = 0, p = 1, xs = sx(x); for (const c of co) { v += c * p; p *= xs; } return v; };
+  const mse = (co, pts) => pts.reduce((s, p) => s + (evalPoly(co, p.x) - p.y) ** 2, 0) / pts.length;
+  const errs = Array.from({ length: MAXD + 1 }, (_, d) => { const co = fit(train, d); return [mse(co, train), mse(co, val)]; });
+  const bestD = errs.reduce((bi, e, i) => (e[1] < errs[bi][1] ? i : bi), 0);
+  const fc = $("fit"), ec = $("err");
+  function layout() {
+    const wrap = document.querySelector(".wrap"), h = wrap.clientHeight - 24, w = wrap.clientWidth - 24 - 210 - 14;
+    fc.width = w; fc.height = Math.floor(h * 0.6) - 14; fc.style.height = fc.height + "px";
+    ec.width = w; ec.height = h - fc.height - 50; ec.style.height = ec.height + "px";
+  }
+  function draw() {
+    const d = +$("deg").value, co = fit(train, d);
+    const fmt = (v) => (v > 10 ? "10 以上(暴走)" : v.toFixed(3));
+    $("dv").textContent = d; $("tr").textContent = fmt(errs[d][0]); $("va").textContent = fmt(errs[d][1]);
+    const m = $("msg");
+    if (d <= 1) { m.className = "msg bad"; m.textContent = "単純すぎて、訓練にも検証にも合わない(未学習)"; }
+    else if (d <= bestD + 1) { m.className = "msg"; m.textContent = "ちょうどよい。検証誤差がほぼ最小"; }
+    else { m.className = "msg bad"; m.textContent = "過学習: 訓練誤差は下がるのに検証誤差が上がっている"; }
+    const ctx = fc.getContext("2d"), W = fc.width, H = fc.height, P = 24;
+    ctx.clearRect(0, 0, W, H);
+    const X = (x) => P + (W - 2 * P) * x, Y = (y) => H / 2 - (H / 2 - P) * y / 1.8;
+    ctx.strokeStyle = "rgba(0,229,255,0.2)"; ctx.beginPath(); ctx.moveTo(P, Y(0)); ctx.lineTo(W - P, Y(0)); ctx.stroke();
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = "#7C8AA5"; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const x = i / 200; i ? ctx.lineTo(X(x), Y(truth(x))) : ctx.moveTo(X(x), Y(truth(x))); } ctx.stroke(); ctx.setLineDash([]);
+    ctx.shadowColor = "#B6FF3C"; ctx.shadowBlur = 8; ctx.strokeStyle = "#B6FF3C"; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 300; i++) { const x = i / 300, y = Math.max(-3, Math.min(3, evalPoly(co, x))); i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); ctx.shadowBlur = 0;
+    for (const p of train) { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 5, 0, Math.PI * 2); ctx.fillStyle = "#00E5FF"; ctx.fill(); }
+    for (const p of val) { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 5, 0, Math.PI * 2); ctx.fillStyle = "#0E1424"; ctx.fill(); ctx.strokeStyle = "#FF2BD6"; ctx.lineWidth = 2; ctx.stroke(); }
+    const c2 = ec.getContext("2d"), W2 = ec.width, H2 = ec.height, L = 34, B = 18;
+    c2.clearRect(0, 0, W2, H2);
+    const maxE = Math.min(1.5, Math.max(...errs.flat()));
+    const px = (i) => L + (W2 - L - 10) * i / MAXD, py = (v) => H2 - B - (H2 - B - 8) * Math.min(v, maxE) / maxE;
+    c2.strokeStyle = "rgba(0,229,255,0.25)"; c2.beginPath(); c2.moveTo(L, 8); c2.lineTo(L, H2 - B); c2.lineTo(W2 - 10, H2 - B); c2.stroke();
+    c2.fillStyle = "#7C8AA5"; c2.font = "10px Meiryo, sans-serif"; c2.textAlign = "center";
+    for (let i = 0; i <= MAXD; i += 2) c2.fillText(i, px(i), H2 - 4);
+    c2.textAlign = "right"; c2.fillText(maxE.toFixed(1), L - 4, 12); c2.fillText("0", L - 4, H2 - B);
+    c2.fillStyle = "rgba(182,255,60,0.18)"; c2.fillRect(px(d) - 6, 8, 12, H2 - B - 8);
+    [[0, "#00E5FF"], [1, "#FF2BD6"]].forEach(([k, col]) => { c2.strokeStyle = col; c2.lineWidth = 2; c2.beginPath();
+      errs.forEach((e, i) => (i ? c2.lineTo(px(i), py(e[k])) : c2.moveTo(px(i), py(e[k])))); c2.stroke();
+      errs.forEach((e, i) => { c2.beginPath(); c2.arc(px(i), py(e[k]), 3, 0, Math.PI * 2); c2.fillStyle = col; c2.fill(); }); });
+  }
+  $("deg").oninput = draw;
+  new ResizeObserver(() => { layout(); draw(); }).observe(document.body);
+  layout(); draw();
+})();
+</script>
+</body>
+</html>

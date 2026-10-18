@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>3D 損失曲面を下る</title>
+<style>/*CYBER*/
+  .wrap { position:relative; height:100%; }
+  canvas { display:block; width:100%; height:100%; cursor:grab; }
+  .panel { position:absolute; left:12px; top:12px; width:210px; display:flex; flex-direction:column; gap:8px; background:rgba(18,26,43,0.9); border:1px solid var(--line); border-radius:6px; padding:10px; }
+  .stats1 { background:var(--panel); border-radius:6px; padding:6px 8px; font-size:12px; line-height:1.7; }
+  .stats1 b { color:var(--cyan); }
+  .hint2 { position:absolute; right:12px; bottom:10px; font-size:11px; color:var(--muted); background:rgba(18,26,43,0.85); padding:4px 8px; border-radius:6px; border:1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="gl"></canvas>
+  <div class="panel">
+    <label><span>学習率 η = <b id="lrv">0.05</b></span><input id="lr" type="range" min="0.005" max="0.6" step="0.005" value="0.05"></label>
+    <div class="btns">
+      <button id="auto" class="primary">▶ 転がす</button>
+      <button id="step">1 歩</button>
+      <button id="rand">開始点を変える</button>
+      <button id="multi">5 個同時に</button>
+    </div>
+    <div class="stats1">
+      ステップ <b id="n">0</b> ・ 損失 L = <b id="L">0</b><br>
+      (w₁, w₂) = (<b id="w1">0</b>, <b id="w2">0</b>)
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="hint2">ドラッグで回転 ・ ホイールで拡大縮小 ・ 旗 = 最小値</div>
+</div>
+<script>/*THREE*/</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const L = (x, y) => 0.12 * (x * x + y * y) + 0.9 * Math.sin(1.1 * x) * Math.cos(1.1 * y) + 1.2 - 0.25 * x;
+  const dL = (x, y) => [0.24 * x + 0.99 * Math.cos(1.1 * x) * Math.cos(1.1 * y) - 0.25, 0.24 * y - 0.99 * Math.sin(1.1 * x) * Math.sin(1.1 * y)];
+  const R = 5.5, ZS = 0.5;
+
+  const canvas = $("gl");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0B0F1A, 18, 40);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(4, 8, 6); scene.add(sun);
+  const glow = new THREE.PointLight(0x00E5FF, 20, 30); glow.position.set(0, 6, 0); scene.add(glow);
+
+  // 曲面(頂点色: 低 = シアン、中 = 暗い藍、高 = マゼンタ)+ ネオンのワイヤーフレーム
+  const N = 90, geo = new THREE.PlaneGeometry(2 * R, 2 * R, N, N); geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position, colors = [];
+  let zmin = 1e9, zmax = -1e9;
+  for (let i = 0; i < pos.count; i++) { const z = L(pos.getX(i), -pos.getZ(i)); zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); }
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const CLO = [0, 229, 255], CMID = [24, 34, 56], CHI = [255, 43, 214];
+  for (let i = 0; i < pos.count; i++) {
+    const z = L(pos.getX(i), -pos.getZ(i)); pos.setY(i, z * ZS);
+    const t = Math.pow((z - zmin) / (zmax - zmin), 0.6);
+    const a = t < 0.5 ? CLO : CMID, c = t < 0.5 ? CMID : CHI, u = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+    colors.push(lerp(a[0], c[0], u) / 255, lerp(a[1], c[1], u) / 255, lerp(a[2], c[2], u) / 255);
+  }
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3)); geo.computeVertexNormals();
+  scene.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.1, side: THREE.DoubleSide, transparent: true, opacity: 0.92 })));
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.PlaneGeometry(2 * R, 2 * R, 22, 22).rotateX(-Math.PI / 2)), new THREE.LineBasicMaterial({ color: 0x00E5FF, transparent: true, opacity: 0.28 }));
+  const wp = wire.geometry.attributes.position; for (let i = 0; i < wp.count; i++) wp.setY(i, L(wp.getX(i), -wp.getZ(i)) * ZS + 0.02);
+  scene.add(wire);
+
+  // 最小値の旗(ライム)
+  let best = [0, 0, 1e9];
+  for (let x = -R; x <= R; x += 0.05) for (let y = -R; y <= R; y += 0.05) { const z = L(x, y); if (z < best[2]) best = [x, y, z]; }
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.4, 6), new THREE.MeshBasicMaterial({ color: 0xB6FF3C }));
+  pole.position.set(best[0], best[2] * ZS + 0.7, -best[1]); scene.add(pole);
+  const flag = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 4), new THREE.MeshBasicMaterial({ color: 0xB6FF3C }));
+  flag.position.set(best[0], best[2] * ZS + 1.45, -best[1]); scene.add(flag);
+
+  // ボール(複数対応)
+  const BALL_COLORS = [0xFFB341, 0xFF4D6D, 0xB6FF3C, 0xFF2BD6, 0xFFFFFF];
+  const balls = [];
+  function makeBall(x, y, color) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 20), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.8, roughness: 0.4 }));
+    const trailGeo = new THREE.BufferGeometry(); const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 }));
+    scene.add(m); scene.add(trail);
+    const b = { w: [x, y], n: 0, m, trail, pts: [], done: false, color };
+    place(b); return b;
+  }
+  function place(b) {
+    const z = L(b.w[0], b.w[1]);
+    b.m.position.set(b.w[0], z * ZS + 0.2, -b.w[1]);
+    b.pts.push(b.w[0], z * ZS + 0.06, -b.w[1]);
+    b.trail.geometry.setAttribute("position", new THREE.Float32BufferAttribute(b.pts, 3));
+  }
+  function clearBalls() { for (const b of balls) { scene.remove(b.m); scene.remove(b.trail); } balls.length = 0; }
+  function reset(points) {
+    clearBalls(); auto = false; $("auto").textContent = "▶ 転がす"; $("msg").textContent = ""; $("msg").className = "msg";
+    points.forEach(([x, y], i) => balls.push(makeBall(x, y, BALL_COLORS[i % BALL_COLORS.length])));
+    updateStats();
+  }
+  function updateStats() {
+    const b = balls[0]; if (!b) return;
+    $("n").textContent = b.n; $("w1").textContent = b.w[0].toFixed(2); $("w2").textContent = b.w[1].toFixed(2); $("L").textContent = L(b.w[0], b.w[1]).toFixed(3);
+  }
+  let auto = false;
+  function stepAll() {
+    const lr = +$("lr").value; let active = 0; const msgs = [];
+    for (const b of balls) {
+      if (b.done) continue;
+      const g = dL(b.w[0], b.w[1]);
+      b.w = [b.w[0] - lr * g[0], b.w[1] - lr * g[1]]; b.n++;
+      if (Math.abs(b.w[0]) > R || Math.abs(b.w[1]) > R) { b.done = true; b.w = [Math.max(-R, Math.min(R, b.w[0])), Math.max(-R, Math.min(R, b.w[1]))]; msgs.push("外へ飛び出した(発散)"); }
+      else if (Math.hypot(g[0], g[1]) < 0.01 && b.n > 3) { b.done = true; msgs.push(Math.hypot(b.w[0] - best[0], b.w[1] - best[1]) < 0.8 ? "最小値に到着" : "局所解に落ち着いた"); }
+      else active++;
+      place(b);
+    }
+    if (msgs.length) {
+      const bad = msgs.some((m) => m.includes("発散"));
+      if (balls.length > 1) {
+        const done = balls.filter((b) => b.done).length;
+        $("msg").textContent = `到着済み ${done} / ${balls.length}(残り ${active})`;
+      } else $("msg").textContent = msgs[0] + (bad ? "。学習率を下げる" : "");
+      $("msg").className = bad ? "msg bad" : "msg";
+    }
+    if (!active) { auto = false; $("auto").textContent = "▶ 転がす"; }
+    updateStats();
+  }
+
+  let theta = 0.75, phi = 0.9, dist = 17, drag = null, idle = 0;
+  function placeCamera() {
+    camera.position.set(dist * Math.sin(phi) * Math.cos(theta), dist * Math.cos(phi), dist * Math.sin(phi) * Math.sin(theta));
+    camera.lookAt(0, 0.6, 0);
+  }
+  canvas.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); canvas.style.cursor = "grabbing"; });
+  canvas.addEventListener("pointermove", (e) => { if (!drag) return; theta += (e.clientX - drag[0]) * 0.008; phi = Math.max(0.2, Math.min(1.45, phi - (e.clientY - drag[1]) * 0.006)); drag = [e.clientX, e.clientY]; idle = 0; });
+  canvas.addEventListener("pointerup", () => { drag = null; canvas.style.cursor = "grab"; });
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); dist = Math.max(6, Math.min(30, dist + e.deltaY * 0.01)); }, { passive: false });
+
+  let last = performance.now(), acc = 0;
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!drag) { idle += dt; if (idle > 2) theta += dt * 0.08; }
+    if (auto) { acc += dt; if (acc > 0.07) { stepAll(); acc = 0; } }
+    placeCamera(); renderer.render(scene, camera);
+  }
+  function resize() { const w = canvas.clientWidth || 600, h = canvas.clientHeight || 400; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  const rnd = () => (Math.random() * 2 - 1) * (R - 0.8);
+  $("auto").onclick = () => { auto = !auto; $("auto").textContent = auto ? "⏸ 止める" : "▶ 転がす"; };
+  $("step").onclick = () => { auto = false; $("auto").textContent = "▶ 転がす"; stepAll(); };
+  $("rand").onclick = () => reset([[rnd(), rnd()]]);
+  $("multi").onclick = () => { reset(Array.from({ length: 5 }, () => [rnd(), rnd()])); auto = true; $("auto").textContent = "⏸ 止める"; };
+  $("lr").oninput = () => ($("lrv").textContent = (+$("lr").value).toFixed(3));
+  new ResizeObserver(resize).observe(canvas);
+  resize(); reset([[-4, 3]]); animate(performance.now());
+})();
+</script>
+</body>
+</html>

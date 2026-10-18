@@ -1,0 +1,109 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>前向き過程：ノイズを足す</title>
+<style>/*INC:_darkroom.css*/
+:root { --cols: 46; }
+.row { display: flex; align-items: flex-start; justify-content: center; gap: .45em; }
+.pic { display: flex; flex-direction: column; align-items: center; gap: .25em; }
+.pic canvas { width: 9em; height: 9em; border-radius: .3em; box-shadow: 0 0 0 1px var(--line); background: #000; }
+.pic.big canvas { width: 11.2em; height: 11.2em; box-shadow: 0 0 0 1px var(--amber), 0 0 1.2em rgba(243, 178, 62, .18); }
+.op { font-size: 1.7em; color: var(--sub); align-self: center; margin-top: -.7em; font-weight: 300; }
+.cap { font-size: .76em; color: var(--sub); white-space: nowrap; }
+.bottom { flex: 1; min-height: 0; display: flex; gap: .6em; }
+#chart { flex: 1; min-width: 0; height: 100%; }
+.tiles { display: grid; grid-template-rows: repeat(3, 1fr); gap: .3em; width: 9.6em; }
+.tiles .v { font-size: 1.05em; }
+.hint { min-height: 2.9em; }
+</style></head><body><div class="frame">
+<header><span class="tag">FORWARD · ノイズを足す（学習で使う過程）</span><span class="chip">SD 1.5 と同じ式・係数</span></header>
+<div class="row">
+  <div class="pic"><canvas id="sig" aria-label="信号の成分"></canvas><div class="cap"><span class="amber">信号</span> <span class="m">√ᾱ<sub>t</sub>·x<sub>0</sub></span></div></div>
+  <div class="op">+</div>
+  <div class="pic"><canvas id="noi" aria-label="ノイズの成分"></canvas><div class="cap"><span class="red">ノイズ</span> <span class="m">√(1−ᾱ<sub>t</sub>)·ε</span></div></div>
+  <div class="op">=</div>
+  <div class="pic big"><canvas id="xt" aria-label="ノイズを足した画像"></canvas><div class="cap"><span class="m">x<sub>t</sub></span>（UNet に渡す入力）</div></div>
+</div>
+<div class="bottom"><canvas id="chart" aria-label="係数のグラフ"></canvas><div class="tiles">
+  <div class="tile"><div class="k">信号の係数 <span class="m">√ᾱ<sub>t</sub></span></div><div class="v amber num" id="vs"></div></div>
+  <div class="tile"><div class="k">ノイズの係数 <span class="m">√(1−ᾱ<sub>t</sub>)</span></div><div class="v red num" id="vn"></div></div>
+  <div class="tile"><div class="k">SNR = <span class="m">ᾱ<sub>t</sub> / (1−ᾱ<sub>t</sub>)</span></div><div class="v num" id="vr"></div></div>
+</div></div>
+<div class="hint" id="hint"></div>
+<div class="controls">
+  <label>時刻 <b>t</b><input type="range" id="t" min="0" max="999" value="400" aria-label="時刻 t"><output id="tv"></output></label>
+  <div class="seg" id="sched"><button data-v="sd" class="on" aria-pressed="true">SD 1.5（scaled linear）</button><button data-v="cos" aria-pressed="false">cosine</button></div>
+  <button class="btn primary" id="play">▶ 0 → 999</button>
+</div>
+</div>
+<script>"use strict";
+/*INC:_dr.js*/
+/*INC:_scene.js*/
+const N = 160;
+let x0 = null, t = 400, sched = "sd", anim = 0;
+const eps = new Float32Array(N * N * 3);
+{ const r = rng(7); for (let i = 0; i < eps.length; i++) eps[i] = gauss(r); }
+const off = {};
+for (const k of ["sig", "noi", "xt"]) { off[k] = document.createElement("canvas"); off[k].width = off[k].height = N; }
+const img = new Image();
+img.onload = () => {
+  const c = document.createElement("canvas"); c.width = c.height = N;
+  const g = c.getContext("2d"); g.drawImage(img, 0, 0, N, N);
+  const d = g.getImageData(0, 0, N, N).data; x0 = new Float32Array(N * N * 3);
+  for (let i = 0, j = 0; i < d.length; i += 4) { x0[j++] = d[i] / 127.5 - 1; x0[j++] = d[i + 1] / 127.5 - 1; x0[j++] = d[i + 2] / 127.5 - 1; }
+  render();
+};
+img.src = SCENE_URL;
+const abar = () => (sched === "sd" ? ABAR_SD : ABAR_COS);
+const to8 = (v) => (v + 1) * 127.5;
+function paint(name, f) {
+  const c = off[name], g = c.getContext("2d"), im = g.createImageData(N, N), d = im.data;
+  for (let p = 0, j = 0; p < d.length; p += 4) { d[p] = f(j++); d[p + 1] = f(j++); d[p + 2] = f(j++); d[p + 3] = 255; }
+  g.putImageData(im, 0, 0);
+  const { g: vg, w, h } = fitCanvas($(name)); vg.drawImage(c, 0, 0, w, h);
+}
+function chart() {
+  const { g, w, h } = fitCanvas($("chart")), fs = parseFloat(getComputedStyle(document.body).fontSize);
+  const L = fs * 1.7, R = 6, Tp = fs * 1.2, B = fs * 1.35, X = (i) => L + (w - L - R) * i / (T - 1), Y = (v) => Tp + (h - Tp - B) * (1 - v);
+  g.clearRect(0, 0, w, h); g.font = `${fs * .72}px "Yu Gothic UI", sans-serif`; g.textBaseline = "middle";
+  g.strokeStyle = "#3B332C"; g.lineWidth = 1; g.fillStyle = "#776D63";
+  for (const v of [0, .5, 1]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(w - R, Y(v)); g.stroke(); g.textAlign = "right"; g.fillText(v.toFixed(1), L - 4, Y(v)); }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for (const i of [0, 250, 500, 750, 999]) g.fillText(i, X(i), h - B + 3);
+  const other = sched === "sd" ? ABAR_COS : ABAR_SD, cur = abar();
+  const curve = (arr, f, col, dash, lw) => { g.beginPath(); g.setLineDash(dash); g.strokeStyle = col; g.lineWidth = lw; arr.forEach((a, i) => (i ? g.lineTo(X(i), Y(f(a))) : g.moveTo(X(i), Y(f(a))))); g.stroke(); g.setLineDash([]); };
+  curve(other, Math.sqrt, "rgba(243,178,62,.35)", [3, 3], 1.2);
+  curve(cur, Math.sqrt, "#F3B23E", [], 2);
+  curve(cur, (a) => Math.sqrt(1 - a), "#FF5A47", [], 2);
+  g.strokeStyle = "rgba(239,231,219,.6)"; g.beginPath(); g.moveTo(X(t), Tp - 2); g.lineTo(X(t), h - B); g.stroke();
+  const a = cur[t];
+  for (const [v, c] of [[Math.sqrt(a), "#F3B23E"], [Math.sqrt(1 - a), "#FF5A47"]]) { g.fillStyle = c; g.beginPath(); g.arc(X(t), Y(v), 3.5, 0, 7); g.fill(); }
+  g.textBaseline = "middle"; g.textAlign = "left"; g.fillStyle = "#A89E91";
+  g.fillText("係数", 2, Tp - fs * .55);
+  g.textAlign = "right"; g.fillStyle = "#F3B23E"; g.fillText("— 信号", w - R - fs * 7.4, Tp - fs * .55);
+  g.fillStyle = "#FF5A47"; g.fillText("— ノイズ", w - R - fs * 3.6, Tp - fs * .55);
+  g.fillStyle = "rgba(243,178,62,.6)"; g.fillText(sched === "sd" ? "┄ cosine" : "┄ SD 1.5", w - R, Tp - fs * .55);
+}
+function render() {
+  const a = abar()[t], sa = Math.sqrt(a), sn = Math.sqrt(1 - a), snr = a / (1 - a);
+  $("t").value = t; $("tv").textContent = t;
+  $("vs").textContent = sa.toFixed(3); $("vn").textContent = sn.toFixed(3);
+  $("vr").textContent = (snr >= 10 ? fmt(snr, 0) : snr >= 0.1 ? snr.toFixed(2) : snr.toFixed(4)) + " (" + (10 * Math.log10(snr)).toFixed(1) + " dB)";
+  if (x0) { paint("sig", (j) => to8(sa * x0[j])); paint("noi", (j) => to8(sn * eps[j])); paint("xt", (j) => to8(sa * x0[j] + sn * eps[j])); }
+  chart();
+  let h;
+  if (t >= 900 && sched === "sd") h = `<b>t = 999 でも信号が ${(ABAR_SD[999] ** .5).toFixed(3)} 残る。</b>生成は純粋なノイズから始めるので、学習とずれる。真っ暗・真っ白な絵が出にくい原因とされ、zero terminal SNR や offset noise の工夫がある（Lin et al. 2023）`;
+  else if (t >= 900) h = `<b>cosine は中盤の信号を多く残し、最後はほぼ 0 まで落とす。</b>低解像度の画素拡散で、線形のスケジュールは早く壊しすぎるとして提案された（Nichol &amp; Dhariwal 2021）`;
+  else if (t < 120) h = `<b>t が小さい ＝ ほとんどきれい。</b>この辺りの UNet は細部の仕上げを受け持つ。大きな t では構図や配色を決める`;
+  else h = `<b>学習では t を 0〜999 から一様に選び、</b>足したノイズ <span class="m">ε</span> を UNet に当てさせる（損失 <span class="m">‖ε − ε̂‖²</span>）。<span class="m">ε</span> は毎回新しい乱数。ここでは固定して見せている`;
+  $("hint").innerHTML = h;
+  publish({ t, sched });
+}
+$("t").addEventListener("input", (e) => { cancelAnimationFrame(anim); t = +e.target.value; render(); });
+segment($("sched"), (v) => { sched = v; render(); });
+$("play").addEventListener("click", () => {
+  cancelAnimationFrame(anim); const start = performance.now();
+  const step = (now) => { t = Math.min(999, Math.round((now - start) / 3200 * 999)); render(); if (t < 999) anim = requestAnimationFrame(step); };
+  anim = requestAnimationFrame(step);
+});
+onRestore((s) => { if (Number.isFinite(s.t)) t = Math.max(0, Math.min(999, s.t | 0)); if (s.sched === "cos" || s.sched === "sd") { sched = s.sched; setSeg($("sched"), sched); } render(); });
+new ResizeObserver(() => render()).observe(document.body);
+render(); ready();
+</script></body></html>

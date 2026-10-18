@@ -1,0 +1,24 @@
+# 依存とビルドの生成物
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Python のキャッシュ・ログ
+__pycache__/
+*.pyc
+*.log
+
+# アプリが資料のフォルダに作るもの(外部の書き換えの控え・書き込み中の一時ファイル・展開元の印)
+.history/
+*.tmp
+.deck-source.json
+# 「1ファイルにまとめる」で decks/ の直下にできる zip の .deck(見本の本文は decks/<名前>/ の中)
+decks/*.deck
+
+# テストの出力(実行のたびに作り直す)
+output/
+tools/shots*/
+tools/out-export/
+tools/fixtures/consistency/
+tools/fixtures/external/

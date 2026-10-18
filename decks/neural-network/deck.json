@@ -1,0 +1,4012 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "ニューラルネットワーク入門(サイバー版)",
+    "author": "",
+    "created": "2026-10-16"
+  },
+  "theme": {
+    "fonts": {
+      "head": "Meiryo",
+      "body": "Meiryo"
+    },
+    "colors": {
+      "dk1": "E6F1FF",
+      "lt1": "0B0F1A",
+      "dk2": "00E5FF",
+      "lt2": "121A2B",
+      "accent1": "00E5FF",
+      "accent2": "FF2BD6",
+      "accent3": "B6FF3C",
+      "accent4": "FFB341",
+      "accent5": "7C8AA5",
+      "accent6": "FF4D6D",
+      "grid": "1E2A44"
+    }
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "background": {
+        "color": "070A12"
+      },
+      "elements": [
+        {
+          "id": "s1-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s1-net",
+          "type": "embed",
+          "x": 663,
+          "y": 158,
+          "w": 553,
+          "h": 432,
+          "src": "widgets/network3d.html",
+          "title": "3D ネットワーク"
+        },
+        {
+          "id": "s1-tag",
+          "type": "text",
+          "x": 60,
+          "y": 165,
+          "w": 540,
+          "h": 29,
+          "style": {
+            "fontSize": 13,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// NEURAL NETWORK  ·  INTRO"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s1-title",
+          "type": "text",
+          "x": 60,
+          "y": 194,
+          "w": 560,
+          "h": 230,
+          "style": {
+            "fontSize": 42,
+            "bold": true,
+            "color": "dk1",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "ニューラル"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "ネットワークは"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "何をしているのか"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s1-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 436,
+          "w": 120,
+          "h": 8,
+          "line": {
+            "color": "accent2",
+            "width": 2
+          }
+        },
+        {
+          "id": "s1-sub",
+          "type": "text",
+          "x": 34,
+          "y": 461,
+          "w": 560,
+          "h": 103,
+          "style": {
+            "fontSize": 16,
+            "color": "accent5",
+            "italic": true
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "italic": false,
+                  "text": "ニューロン 1 個から、学習が進む様子まで。全部その場で動かして見る"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s1-meta",
+          "type": "text",
+          "x": 60,
+          "y": 640,
+          "w": 560,
+          "h": 24,
+          "style": {
+            "fontSize": 11,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "2026-10-16  ·  Lumifold"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "elements": [
+        {
+          "id": "s2-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s2-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 02  WHAT IT IS"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 714,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "一言でいうと、「例から関数を作る機械」"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s2-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s2-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  02 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-box1",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 160,
+          "w": 160,
+          "h": 84,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s2-box1-t",
+          "type": "text",
+          "x": 60,
+          "y": 160,
+          "w": 160,
+          "h": 84,
+          "style": {
+            "fontSize": 13,
+            "color": "dk1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "入力"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "(画像・文章・数値)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-box2",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 480,
+          "y": 160,
+          "w": 320,
+          "h": 84,
+          "fill": "accent1",
+          "line": {
+            "color": "accent1",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s2-box2-t",
+          "type": "text",
+          "x": 480,
+          "y": 160,
+          "w": 320,
+          "h": 84,
+          "style": {
+            "fontSize": 15,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "関数 f"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "= ニューラルネット"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-box3",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 1060,
+          "y": 160,
+          "w": 160,
+          "h": 84,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s2-box3-t",
+          "type": "text",
+          "x": 1060,
+          "y": 160,
+          "w": 160,
+          "h": 84,
+          "style": {
+            "fontSize": 13,
+            "color": "dk1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "出力"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "(ラベル・次の単語)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-arr1",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 222,
+          "y": 198,
+          "w": 256,
+          "h": 32,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s2-arr2",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 802,
+          "y": 198,
+          "w": 178,
+          "h": 40,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s2-flow-note",
+          "type": "text",
+          "x": 60,
+          "y": 250,
+          "w": 1160,
+          "h": 30,
+          "style": {
+            "fontSize": 13,
+            "color": "accent5",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "f の中身は、数百万個の「重み」という数字。それを例に合わせて調整する作業が「学習」"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-card1",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 300,
+          "w": 367,
+          "h": 240,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1
+          },
+          "radius": 6,
+          "opacity": 0.95
+        },
+        {
+          "id": "s2-card1-mark",
+          "type": "shape",
+          "shape": "rect",
+          "x": 60,
+          "y": 300,
+          "w": 4,
+          "h": 240,
+          "fill": "accent1",
+          "opacity": 0.7
+        },
+        {
+          "id": "s2-card1-idx",
+          "type": "text",
+          "x": 84,
+          "y": 318,
+          "w": 60,
+          "h": 20,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "01"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-card1-head",
+          "type": "text",
+          "x": 84,
+          "y": 340,
+          "w": 319,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "従来のプログラム"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-card1-body",
+          "type": "text",
+          "x": 84,
+          "y": 392,
+          "w": 319,
+          "h": 128,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "人がルールを一つずつ書く"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "ルールにない状況には対応できない"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s2-card2",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 457,
+          "y": 300,
+          "w": 367,
+          "h": 240,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1
+          },
+          "radius": 6,
+          "opacity": 0.95
+        },
+        {
+          "id": "s2-card2-idx",
+          "type": "text",
+          "x": 481,
+          "y": 318,
+          "w": 60,
+          "h": 20,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-card2-head",
+          "type": "text",
+          "x": 480,
+          "y": 340,
+          "w": 319,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "従来の機械学習"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-card2-body",
+          "type": "text",
+          "x": 480,
+          "y": 392,
+          "w": 319,
+          "h": 128,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "人が「特徴量」を設計し、モデルが重みを学ぶ"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "特徴量の設計が性能を決める"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s2-card3",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 857,
+          "y": 300,
+          "w": 367,
+          "h": 240,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1
+          },
+          "radius": 6,
+          "opacity": 0.95
+        },
+        {
+          "id": "s2-card3-mark",
+          "type": "shape",
+          "shape": "rect",
+          "x": 853,
+          "y": 300,
+          "w": 4,
+          "h": 240,
+          "fill": "accent1",
+          "opacity": 0.7
+        },
+        {
+          "id": "s2-card3-idx",
+          "type": "text",
+          "x": 877,
+          "y": 318,
+          "w": 60,
+          "h": 20,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "03"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-card3-head",
+          "type": "text",
+          "x": 877,
+          "y": 340,
+          "w": 319,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "ニューラルネットワーク"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-card3-body",
+          "type": "text",
+          "x": 876,
+          "y": 392,
+          "w": 319,
+          "h": 128,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "特徴量の設計もモデルが学ぶ"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "データと計算を増やすほど伸びる"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s2-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 570,
+          "w": 1160,
+          "h": 70,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s2-callout-icon",
+          "type": "text",
+          "x": 78,
+          "y": 570,
+          "w": 28,
+          "h": 70,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-callout-text",
+          "type": "text",
+          "x": 106,
+          "y": 570,
+          "w": 1096,
+          "h": 70,
+          "style": {
+            "fontSize": 16,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "このデッキで動かすのは「重みを調整する」の部分。何が起きているかを目で見る"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "background": {
+        "color": "0F1527"
+      },
+      "elements": [
+        {
+          "id": "s3-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s3-tag",
+          "type": "text",
+          "x": 60,
+          "y": 180,
+          "w": 600,
+          "h": 24,
+          "style": {
+            "fontSize": 13,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// CHAPTER 01  PARTS"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s3-num",
+          "type": "text",
+          "x": 60,
+          "y": 200,
+          "w": 188,
+          "h": 150,
+          "style": {
+            "fontSize": 84,
+            "bold": true,
+            "color": "accent1",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "01"
+                }
+              ]
+            }
+          ],
+          "opacity": 0.9
+        },
+        {
+          "id": "s3-title",
+          "type": "text",
+          "x": 60,
+          "y": 360,
+          "w": 1160,
+          "h": 90,
+          "style": {
+            "fontSize": 36,
+            "bold": true,
+            "color": "dk1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "部品: ニューロンと層"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s3-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 460,
+          "w": 200,
+          "h": 8,
+          "line": {
+            "color": "accent2",
+            "width": 2
+          }
+        },
+        {
+          "id": "s3-lead",
+          "type": "text",
+          "x": 60,
+          "y": 480,
+          "w": 600,
+          "h": 31,
+          "style": {
+            "fontSize": 16,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "最小単位は「足して、曲げる」だけ。それを並べて重ねる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "embed-mvc1pauc1",
+          "type": "embed",
+          "x": 645,
+          "y": 148,
+          "w": 571,
+          "h": 442,
+          "src": "widgets/network3d.html",
+          "title": "3D ネットワーク",
+          "locked": true
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "background": {
+        "color": "lt1"
+      },
+      "elements": [
+        {
+          "id": "s4-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s4-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 04  PARTS  ·  NEURON"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "ニューロン 1 個 = 重み付きの足し算 + ひと曲げ"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s4-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s4-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  04 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-widget",
+          "type": "embed",
+          "x": 65,
+          "y": 154,
+          "w": 760,
+          "h": 490,
+          "src": "widgets/neuron.html",
+          "title": "ニューロンを触る",
+          "locked": true
+        },
+        {
+          "id": "s4-head",
+          "type": "text",
+          "x": 850,
+          "y": 154,
+          "w": 370,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "y = f( w₁x₁ + w₂x₂ + b )"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-bullets",
+          "type": "text",
+          "x": 850,
+          "y": 206,
+          "w": 370,
+          "h": 310,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 10
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "重み w: 入力をどれだけ重視するか。動かすと境界線(白)の向きが変わる"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "バイアス b: 境界線を平行に動かす"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "活性化関数 f: 「なし」にすると平面のまま。ReLU や Sigmoid で曲がる"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "地図をクリックすると、その入力での z と y が出る"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s4-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 850,
+          "y": 540,
+          "w": 370,
+          "h": 104,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s4-callout-icon",
+          "type": "text",
+          "x": 868,
+          "y": 540,
+          "w": 39,
+          "h": 79,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-callout-text",
+          "type": "text",
+          "x": 896,
+          "y": 540,
+          "w": 306,
+          "h": 104,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "ニューロン 1 個 = 1 本の境界線。学習とは w と b を調整して、線を正しい位置に置くこと"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "elements": [
+        {
+          "id": "s5-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s5-tag",
+          "type": "text",
+          "x": 60,
+          "y": 26,
+          "w": 628,
+          "h": 19,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 05  PARTS  ·  LAYERS"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s5-title",
+          "type": "text",
+          "x": 60,
+          "y": 44,
+          "w": 1160,
+          "h": 84,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "並べて、重ねる。信号は前へ、誤差は後ろへ流れる"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s5-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s5-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  05 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s5-widget",
+          "type": "embed",
+          "x": 47,
+          "y": 140,
+          "w": 1160,
+          "h": 440,
+          "src": "widgets/network3d.html",
+          "title": "3D ネットワーク",
+          "locked": true
+        },
+        {
+          "id": "s5-note",
+          "type": "text",
+          "x": 60,
+          "y": 606,
+          "w": 1160,
+          "h": 51,
+          "style": {
+            "fontSize": 13,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶ 順伝播",
+                  "bold": true,
+                  "color": "accent1"
+                },
+                {
+                  "text": ": 入力の信号が重みを掛けられながら右へ進む。  "
+                },
+                {
+                  "text": "◀ 逆伝播",
+                  "bold": true,
+                  "color": "accent2"
+                },
+                {
+                  "text": ": 出力の誤差が左へ戻り、通った重みを修正する。線の太さ = 重みの大きさ。ドラッグで回転"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "elements": [
+        {
+          "id": "s6-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s6-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 06  PARTS  ·  ACTIVATION"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "活性化関数: 直線しか引けない網に「曲がり」を与える"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s6-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s6-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  06 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-table",
+          "type": "table",
+          "x": 60,
+          "y": 154,
+          "w": 565,
+          "h": 307,
+          "colW": [
+            110,
+            190,
+            265
+          ],
+          "fontSize": 13,
+          "rows": [
+            [
+              {
+                "text": "名前"
+              },
+              {
+                "text": "式"
+              },
+              {
+                "text": "特徴・用途"
+              }
+            ],
+            [
+              {
+                "text": "ReLU"
+              },
+              {
+                "text": "max(0, x)"
+              },
+              {
+                "text": "計算が軽く、深い網でも学習が進む。隠れ層の既定"
+              }
+            ],
+            [
+              {
+                "text": "Sigmoid"
+              },
+              {
+                "text": "1 / (1 + e⁻ˣ)"
+              },
+              {
+                "text": "0〜1 に収まる。二値分類の出力層"
+              }
+            ],
+            [
+              {
+                "text": "tanh"
+              },
+              {
+                "text": "(eˣ − e⁻ˣ) / (eˣ + e⁻ˣ)"
+              },
+              {
+                "text": "−1〜1。Sigmoid より勾配が消えにくい"
+              }
+            ],
+            [
+              {
+                "text": "Softmax"
+              },
+              {
+                "text": "eˣⁱ / Σ eˣʲ"
+              },
+              {
+                "text": "合計 1 の確率に。多クラス分類の出力層"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "s6-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 480,
+          "w": 565,
+          "h": 100,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s6-callout-icon",
+          "type": "text",
+          "x": 78,
+          "y": 480,
+          "w": 28,
+          "h": 100,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-callout-text",
+          "type": "text",
+          "x": 106,
+          "y": 480,
+          "w": 501,
+          "h": 100,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "迷ったら: 隠れ層は ReLU、出力層は問題に合わせる(回帰ならそのまま、分類なら Sigmoid / Softmax)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-chart",
+          "type": "chart",
+          "x": 655,
+          "y": 154,
+          "w": 565,
+          "h": 490,
+          "chart": {
+            "kind": "line",
+            "title": "入力 x に対する出力",
+            "labels": [
+              "-4",
+              "-3",
+              "-2",
+              "-1",
+              "0",
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "series": [
+              {
+                "name": "ReLU",
+                "values": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              {
+                "name": "Sigmoid",
+                "values": [
+                  0.018,
+                  0.047,
+                  0.119,
+                  0.269,
+                  0.5,
+                  0.731,
+                  0.881,
+                  0.953,
+                  0.982
+                ]
+              },
+              {
+                "name": "tanh",
+                "values": [
+                  -0.999,
+                  -0.995,
+                  -0.964,
+                  -0.762,
+                  0,
+                  0.762,
+                  0.964,
+                  0.995,
+                  0.999
+                ]
+              }
+            ],
+            "options": {
+              "showValues": false,
+              "legend": "bottom"
+            }
+          },
+          "locked": true
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "background": {
+        "color": "0F1527"
+      },
+      "elements": [
+        {
+          "id": "s7-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s7-tag",
+          "type": "text",
+          "x": 60,
+          "y": 180,
+          "w": 600,
+          "h": 24,
+          "style": {
+            "fontSize": 13,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// CHAPTER 02  LEARNING"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-num",
+          "type": "text",
+          "x": 60,
+          "y": 200,
+          "w": 400,
+          "h": 150,
+          "style": {
+            "fontSize": 84,
+            "bold": true,
+            "color": "accent1",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "02"
+                }
+              ]
+            }
+          ],
+          "opacity": 0.9
+        },
+        {
+          "id": "s7-title",
+          "type": "text",
+          "x": 60,
+          "y": 360,
+          "w": 1160,
+          "h": 90,
+          "style": {
+            "fontSize": 36,
+            "bold": true,
+            "color": "dk1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "学習: 間違いを測って、減らす方向に動かす"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s7-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 460,
+          "w": 200,
+          "h": 8,
+          "line": {
+            "color": "accent2",
+            "width": 2
+          }
+        },
+        {
+          "id": "s7-lead",
+          "type": "text",
+          "x": 60,
+          "y": 480,
+          "w": 1160,
+          "h": 80,
+          "style": {
+            "fontSize": 16,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "順伝播 → 損失 → 逆伝播 → 更新。この 4 拍子をひたすら繰り返す"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "elements": [
+        {
+          "id": "s8-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s8-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 08  LEARNING  ·  LOOP"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "学習は 4 ステップの繰り返し"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s8-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s8-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  08 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-c1",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 149,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s8-n1",
+          "type": "text",
+          "x": 149,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "accent1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-h1",
+          "type": "text",
+          "x": 60,
+          "y": 246,
+          "w": 254,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "順伝播"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-b1",
+          "type": "text",
+          "x": 60,
+          "y": 300,
+          "w": 254,
+          "h": 154,
+          "style": {
+            "fontSize": 14,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "入力を網に通して、いまの重みでの出力(予測)を得る"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-a1",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 320,
+          "y": 188,
+          "w": 36,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 1.5
+          }
+        },
+        {
+          "id": "s8-c2",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 451,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s8-n2",
+          "type": "text",
+          "x": 451,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "accent1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-h2",
+          "type": "text",
+          "x": 362,
+          "y": 246,
+          "w": 254,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "損失を測る"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-b2",
+          "type": "text",
+          "x": 362,
+          "y": 300,
+          "w": 254,
+          "h": 77,
+          "style": {
+            "fontSize": 14,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "予測と正解のずれを 1 つの数にする(二乗誤差、交差エントロピー)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-a2",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 622,
+          "y": 188,
+          "w": 36,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 1.5
+          }
+        },
+        {
+          "id": "s8-c3",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 753,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "fill": "lt2",
+          "line": {
+            "color": "accent2",
+            "width": 2
+          }
+        },
+        {
+          "id": "s8-n3",
+          "type": "text",
+          "x": 753,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "accent2",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "3"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-h3",
+          "type": "text",
+          "x": 664,
+          "y": 246,
+          "w": 254,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "逆伝播"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-b3",
+          "type": "text",
+          "x": 664,
+          "y": 300,
+          "w": 254,
+          "h": 90,
+          "style": {
+            "fontSize": 14,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "損失が各重みにどれだけ影響するか(勾配)を、出力側から順に計算する"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-a3",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 924,
+          "y": 188,
+          "w": 36,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 1.5
+          }
+        },
+        {
+          "id": "s8-c4",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 1055,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s8-n4",
+          "type": "text",
+          "x": 1055,
+          "y": 154,
+          "w": 76,
+          "h": 76,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "accent1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "4"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-h4",
+          "type": "text",
+          "x": 966,
+          "y": 246,
+          "w": 254,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "重みを更新"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-b4",
+          "type": "text",
+          "x": 966,
+          "y": 300,
+          "w": 254,
+          "h": 84,
+          "style": {
+            "fontSize": 14,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "勾配の逆方向に、学習率ぶんだけ重みを動かす。これを何万回も"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-loop",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 187,
+          "y": 396,
+          "w": 906,
+          "h": 8,
+          "line": {
+            "color": "accent2",
+            "width": 1.5
+          },
+          "rotation": 180
+        },
+        {
+          "id": "s8-loop-label",
+          "type": "text",
+          "x": 400,
+          "y": 410,
+          "w": 480,
+          "h": 26,
+          "style": {
+            "fontSize": 12,
+            "color": "accent5",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "次のデータで 1 に戻る(訓練データを 1 周 = 1 エポック)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 470,
+          "w": 1160,
+          "h": 84,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s8-callout-icon",
+          "type": "text",
+          "x": 78,
+          "y": 470,
+          "w": 28,
+          "h": 84,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-callout-text",
+          "type": "text",
+          "x": 106,
+          "y": 470,
+          "w": 1096,
+          "h": 84,
+          "style": {
+            "fontSize": 16,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "勾配降下法: 損失という「坂」を下る方向に一歩ずつ。学習率がその歩幅。次の 3 枚で実際に転がす"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s9",
+      "elements": [
+        {
+          "id": "s9-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s9-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 09  LEARNING  ·  GRADIENT DESCENT"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s9-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "まず 1 次元: 坂を下るボール"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s9-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s9-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  09 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s9-widget",
+          "type": "embed",
+          "x": 60,
+          "y": 154,
+          "w": 760,
+          "h": 490,
+          "src": "widgets/descent.html",
+          "title": "勾配降下法",
+          "locked": true
+        },
+        {
+          "id": "s9-head",
+          "type": "text",
+          "x": 850,
+          "y": 154,
+          "w": 370,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "試してみること"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s9-bullets",
+          "type": "text",
+          "x": 850,
+          "y": 206,
+          "w": 370,
+          "h": 310,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 10
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "学習率 0.1 で「▶ 自動」: ゆっくり谷底へ"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "学習率を 1 にすると跳ね回って収束せず、2 以上で発散する"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "開始位置を 4 にすると、手前の浅い谷(局所解)に落ち着く"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "破線 = いまの傾き(勾配)、矢印 = 次の一歩"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s9-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 850,
+          "y": 540,
+          "w": 370,
+          "h": 104,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s9-callout-icon",
+          "type": "text",
+          "x": 868,
+          "y": 540,
+          "w": 28,
+          "h": 104,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s9-callout-text",
+          "type": "text",
+          "x": 896,
+          "y": 540,
+          "w": 306,
+          "h": 104,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "w ← w − η·∇L。本物の学習も式はこれだけ。ただし w が数百万〜数十億個ある"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10",
+      "elements": [
+        {
+          "id": "s10-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s10-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 10  LEARNING  ·  LOSS LANDSCAPE"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s10-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "次に 2 次元: 損失は「地形」になる"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s10-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s10-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  10 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s10-widget",
+          "type": "embed",
+          "x": 48,
+          "y": 162,
+          "w": 760,
+          "h": 490,
+          "src": "widgets/surface3d.html",
+          "title": "3D 損失曲面",
+          "locked": true
+        },
+        {
+          "id": "s10-head",
+          "type": "text",
+          "x": 850,
+          "y": 154,
+          "w": 370,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "地形を回して眺める"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s10-bullets",
+          "type": "text",
+          "x": 850,
+          "y": 206,
+          "w": 370,
+          "h": 233,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 10
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "高さが損失。ボールは足元の傾きだけを頼りに下る"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "「5 個同時に」で、開始点によって別の谷(局所解)に落ちるのが見える"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "学習率を上げると谷を飛び越え、外へ出る(発散)"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "本物は重みが数百万次元。地形は見えないが、やっていることは同じ"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s10-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 850,
+          "y": 540,
+          "w": 370,
+          "h": 104,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s10-callout-icon",
+          "type": "text",
+          "x": 862,
+          "y": 579,
+          "w": 28,
+          "h": 27,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s10-callout-text",
+          "type": "text",
+          "x": 896,
+          "y": 553,
+          "w": 306,
+          "h": 78,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "勾配降下法 = 見えない地形を、足元の傾きだけを頼りに下っていくこと"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s11",
+      "elements": [
+        {
+          "id": "s11-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s11-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 11  LEARNING  ·  LIVE"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s11-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "そして本番: 小さなネットワークが境界を学ぶ"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s11-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s11-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  11 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s11-widget",
+          "type": "embed",
+          "x": 48,
+          "y": 145,
+          "w": 1160,
+          "h": 450,
+          "src": "widgets/train.html",
+          "title": "学習のライブデモ",
+          "locked": true
+        },
+        {
+          "id": "s11-note",
+          "type": "text",
+          "x": 60,
+          "y": 612,
+          "w": 1160,
+          "h": 32,
+          "style": {
+            "fontSize": 12,
+            "color": "accent5"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "試す: 3D で確率曲面が持ち上がるのを見る ／ らせん × 幅 2 と 16 ／ 学習率 1 で発散 ／ 白フチ = 検証データ ／ クリックで点を追加"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s12",
+      "elements": [
+        {
+          "id": "s12-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill"
+        },
+        {
+          "id": "s12-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 12  LEARNING  ·  OVERFITTING"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s12-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "落とし穴: 複雑にすれば良いわけではない"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s12-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s12-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  12 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s12-widget",
+          "type": "embed",
+          "x": 53,
+          "y": 154,
+          "w": 760,
+          "h": 490,
+          "src": "widgets/overfit.html",
+          "title": "過学習",
+          "locked": true
+        },
+        {
+          "id": "s12-head",
+          "type": "text",
+          "x": 850,
+          "y": 154,
+          "w": 370,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "次数を 0 から 12 まで動かす"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s12-bullets",
+          "type": "text",
+          "x": 850,
+          "y": 206,
+          "w": 370,
+          "h": 310,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 10
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "0〜1: 単純すぎて何にも合わない(未学習)"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "3〜5: 本当の関係(破線)に近く、検証誤差が最小"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "8 以上: 訓練の点を無理に通ろうとして暴れ、検証誤差が跳ね上がる"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "下のグラフ: 訓練は下がり続け、検証は途中から上がる"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s12-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 850,
+          "y": 540,
+          "w": 370,
+          "h": 104,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s12-callout-icon",
+          "type": "text",
+          "x": 868,
+          "y": 540,
+          "w": 28,
+          "h": 104,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s12-callout-text",
+          "type": "text",
+          "x": 896,
+          "y": 540,
+          "w": 306,
+          "h": 104,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "訓練データで良くても意味がない。見ていないデータ(検証)で測る"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s13",
+      "elements": [
+        {
+          "id": "s13-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s13-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 13  ARCHITECTURES"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "入力の形に合わせた「型」がある"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s13-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s13-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  13 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-card1",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 154,
+          "w": 367,
+          "h": 330,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1
+          },
+          "radius": 6,
+          "opacity": 0.95
+        },
+        {
+          "id": "s13-card1-mark",
+          "type": "shape",
+          "shape": "rect",
+          "x": 60,
+          "y": 154,
+          "w": 4,
+          "h": 330,
+          "fill": "accent1",
+          "opacity": 0.7
+        },
+        {
+          "id": "s13-card1-idx",
+          "type": "text",
+          "x": 84,
+          "y": 172,
+          "w": 60,
+          "h": 20,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "01"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-card1-head",
+          "type": "text",
+          "x": 84,
+          "y": 194,
+          "w": 319,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "全結合(MLP)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-card1-body",
+          "type": "text",
+          "x": 84,
+          "y": 246,
+          "w": 319,
+          "h": 218,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "表形式のデータ、小さな問題"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "すべてのニューロンが前層と結合"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "まず試す基本形。このデッキのデモも MLP"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s13-card2",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 457,
+          "y": 154,
+          "w": 367,
+          "h": 330,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1
+          },
+          "radius": 6,
+          "opacity": 0.95
+        },
+        {
+          "id": "s13-card2-mark",
+          "type": "shape",
+          "shape": "rect",
+          "x": 457,
+          "y": 154,
+          "w": 4,
+          "h": 330,
+          "fill": "accent1",
+          "opacity": 0.7
+        },
+        {
+          "id": "s13-card2-idx",
+          "type": "text",
+          "x": 481,
+          "y": 172,
+          "w": 60,
+          "h": 20,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "02"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-card2-head",
+          "type": "text",
+          "x": 481,
+          "y": 194,
+          "w": 319,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "畳み込み(CNN)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-card2-body",
+          "type": "text",
+          "x": 481,
+          "y": 246,
+          "w": 319,
+          "h": 218,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "画像、音声のスペクトログラム"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "小さなフィルタを滑らせ、局所の模様を検出"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "位置がずれても同じ特徴を拾える"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s13-card3",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 853,
+          "y": 154,
+          "w": 367,
+          "h": 330,
+          "fill": "lt2",
+          "line": {
+            "color": "accent1",
+            "width": 1
+          },
+          "radius": 6,
+          "opacity": 0.95
+        },
+        {
+          "id": "s13-card3-mark",
+          "type": "shape",
+          "shape": "rect",
+          "x": 853,
+          "y": 154,
+          "w": 4,
+          "h": 330,
+          "fill": "accent1",
+          "opacity": 0.7
+        },
+        {
+          "id": "s13-card3-idx",
+          "type": "text",
+          "x": 877,
+          "y": 172,
+          "w": 60,
+          "h": 20,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "03"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-card3-head",
+          "type": "text",
+          "x": 877,
+          "y": 194,
+          "w": 319,
+          "h": 44,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "Transformer"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-card3-body",
+          "type": "text",
+          "x": 877,
+          "y": 246,
+          "w": 319,
+          "h": 218,
+          "style": {
+            "fontSize": 14,
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "文章、時系列、いまは画像も"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "「注意機構」で入力同士の関係を直接見る"
+                }
+              ],
+              "bullet": true
+            },
+            {
+              "runs": [
+                {
+                  "text": "大規模言語モデルの土台"
+                }
+              ],
+              "bullet": true
+            }
+          ]
+        },
+        {
+          "id": "s13-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 520,
+          "w": 1160,
+          "h": 96,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s13-callout-icon",
+          "type": "text",
+          "x": 78,
+          "y": 520,
+          "w": 28,
+          "h": 96,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s13-callout-text",
+          "type": "text",
+          "x": 106,
+          "y": 520,
+          "w": 1096,
+          "h": 96,
+          "style": {
+            "fontSize": 16,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "迷ったら: 表データ → MLP、画像 → CNN、文章・系列 → Transformer。多くの実務はこの 3 つの組み合わせ"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s14",
+      "elements": [
+        {
+          "id": "s14-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s14-tag",
+          "type": "text",
+          "x": 60,
+          "y": 22,
+          "w": 700,
+          "h": 22,
+          "style": {
+            "fontSize": 11,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// 14  GLOSSARY"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s14-title",
+          "type": "text",
+          "x": 60,
+          "y": 52,
+          "w": 1160,
+          "h": 76,
+          "style": {
+            "fontSize": 28,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "押さえておきたい用語"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s14-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 134,
+          "w": 140,
+          "h": 8,
+          "line": {
+            "color": "accent1",
+            "width": 2
+          }
+        },
+        {
+          "id": "s14-page",
+          "type": "text",
+          "x": 980,
+          "y": 686,
+          "w": 240,
+          "h": 20,
+          "style": {
+            "fontSize": 10,
+            "color": "accent5",
+            "align": "right"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "NN-INTRO  ·  14 / 15"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s14-table",
+          "type": "table",
+          "x": 60,
+          "y": 157,
+          "w": 1050,
+          "h": 264,
+          "colW": [
+            200,
+            600,
+            360
+          ],
+          "fontSize": 14,
+          "rows": [
+            [
+              {
+                "text": "用語"
+              },
+              {
+                "text": "意味"
+              },
+              {
+                "text": "ひとこと"
+              }
+            ],
+            [
+              {
+                "text": "エポック"
+              },
+              {
+                "text": "訓練データ全体を 1 周すること"
+              },
+              {
+                "text": "多すぎると過学習"
+              }
+            ],
+            [
+              {
+                "text": "バッチ"
+              },
+              {
+                "text": "1 回の更新に使うデータのまとまり"
+              },
+              {
+                "text": "32〜256 が目安"
+              }
+            ],
+            [
+              {
+                "text": "学習率"
+              },
+              {
+                "text": "1 回の更新で重みを動かす幅"
+              },
+              {
+                "text": "大きすぎると発散、小さすぎると遅い"
+              }
+            ],
+            [
+              {
+                "text": "過学習"
+              },
+              {
+                "text": "訓練データだけに合わせ込み、新しいデータで外す"
+              },
+              {
+                "text": "検証データで見張る"
+              }
+            ],
+            [
+              {
+                "text": "正則化"
+              },
+              {
+                "text": "過学習を抑える工夫(Dropout、重み減衰など)"
+              },
+              {
+                "text": "まず Dropout"
+              }
+            ],
+            [
+              {
+                "text": "パラメータ"
+              },
+              {
+                "text": "学習で決まる重みとバイアスの総数"
+              },
+              {
+                "text": "LLM は数十億〜"
+              }
+            ]
+          ]
+        },
+        {
+          "id": "s14-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 566,
+          "w": 1160,
+          "h": 74,
+          "fill": "lt2",
+          "line": {
+            "color": "accent3",
+            "width": 1.5
+          },
+          "radius": 6
+        },
+        {
+          "id": "s14-callout-icon",
+          "type": "text",
+          "x": 78,
+          "y": 566,
+          "w": 28,
+          "h": 74,
+          "style": {
+            "fontSize": 14,
+            "bold": true,
+            "color": "accent3",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "▶"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s14-callout-text",
+          "type": "text",
+          "x": 106,
+          "y": 566,
+          "w": 1096,
+          "h": 74,
+          "style": {
+            "fontSize": 16,
+            "bold": true,
+            "color": "dk1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "最初に触るなら: 11 枚目のデモのように小さなデータで MLP を組み、学習率とエポック数を変えて損失曲線を眺める"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s15",
+      "background": {
+        "color": "070A12"
+      },
+      "elements": [
+        {
+          "id": "s15-bg",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 720,
+          "src": "assets/grid.png",
+          "fit": "fill",
+          "locked": true
+        },
+        {
+          "id": "s15-tag",
+          "type": "text",
+          "x": 60,
+          "y": 150,
+          "w": 600,
+          "h": 24,
+          "style": {
+            "fontSize": 13,
+            "bold": true,
+            "color": "accent1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "// SUMMARY"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s15-title",
+          "type": "text",
+          "x": 60,
+          "y": 180,
+          "w": 693,
+          "h": 90,
+          "style": {
+            "fontSize": 40,
+            "bold": true,
+            "color": "dk1",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "まとめ"
+                }
+              ]
+            }
+          ],
+          "role": "title"
+        },
+        {
+          "id": "s15-rule",
+          "type": "shape",
+          "shape": "line",
+          "x": 60,
+          "y": 286,
+          "w": 120,
+          "h": 8,
+          "line": {
+            "color": "accent2",
+            "width": 2
+          }
+        },
+        {
+          "id": "s15-body",
+          "type": "text",
+          "x": 60,
+          "y": 310,
+          "w": 1160,
+          "h": 300,
+          "style": {
+            "fontSize": 18,
+            "color": "dk1",
+            "paraSpacing": 16
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "部品  ニューロン 1 個は「重み付きの足し算 + ひと曲げ」。並べて重ねたのがニューラルネットワーク",
+                  "bold": true,
+                  "color": "accent1"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "学習  損失が減る方向に重みを少しずつ動かす(順伝播 → 損失 → 逆伝播 → 更新)",
+                  "bold": true,
+                  "color": "accent1"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "落とし穴  学習率が大きすぎれば発散、モデルが複雑すぎれば過学習。検証データで見張る",
+                  "bold": true,
+                  "color": "accent2"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "型  入力の形に合った型(MLP / CNN / Transformer)を選ぶ",
+                  "bold": true,
+                  "color": "accent1"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

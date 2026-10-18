@@ -1,0 +1,39 @@
+/* sd-lora のウィジェット共通（暗室テーマ）。1em = iframe の幅 / --cols（各ウィジェットが決める）。
+   赤 = ノイズ・拡散、琥珀 = 信号・LoRA、青緑 = 文字の条件、青 = 潜在、紫 = 2 つ目のクラス */
+:root {
+  --bg: #15110F; --card: #1C1714; --raise: #26201C; --line: #3B332C; --ink: #EFE7DB; --sub: #A89E91; --mute: #776D63;
+  --red: #FF5A47; --amber: #F3B23E; --teal: #45C4B0; --blue: #7FA2FF; --violet: #C08BFF;
+  --red-soft: rgba(255, 90, 71, .15); --amber-soft: rgba(243, 178, 62, .15); --teal-soft: rgba(69, 196, 176, .15); --violet-soft: rgba(192, 139, 255, .15);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; }
+body { color: var(--ink); font: 400 calc(100vw / var(--cols, 46)) / 1.4 "Yu Gothic UI", "Meiryo UI", "Meiryo", sans-serif; overflow: hidden; }
+.frame { height: 100%; display: flex; flex-direction: column; gap: .55em; padding: .7em .9em .75em; background: var(--card); border: 1px solid var(--line); border-radius: .7em; }
+header { display: flex; align-items: center; gap: .6em; min-height: 1.5em; }
+.tag { font-size: .78em; font-weight: 700; letter-spacing: .08em; color: var(--red); white-space: nowrap; }
+.tag::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .45em; border-radius: 50%; background: currentColor; box-shadow: 0 0 .5em currentColor; vertical-align: .05em; }
+.chip { margin-left: auto; font-size: .72em; padding: .1em .7em; border-radius: 999px; background: var(--raise); color: var(--sub); white-space: nowrap; }
+.num, output { font-family: Consolas, "Cascadia Mono", monospace; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--raise); border-radius: 999px; padding: .2em .85em; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.btn:hover { border-color: var(--amber); color: var(--amber); }
+.btn.primary { background: var(--amber); border-color: var(--amber); color: #261A06; }
+.btn.primary:hover { filter: brightness(1.08); color: #261A06; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
+.seg button { border: 0; background: transparent; padding: .2em .75em; font-size: .82em; color: var(--sub); white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--raise); color: var(--ink); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amber); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .45em .9em; }
+label { display: inline-flex; align-items: center; gap: .45em; font-size: .85em; color: var(--sub); white-space: nowrap; }
+label b { color: var(--ink); }
+input[type=range] { width: 7.5em; accent-color: var(--amber); margin: 0; }
+output { color: var(--ink); min-width: 2.4em; display: inline-block; }
+.tile { background: var(--raise); border-radius: .45em; padding: .3em .6em .35em; min-width: 0; }
+.tile .k { font-size: .72em; color: var(--sub); white-space: nowrap; }
+.tile .v { font-size: 1.25em; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hint { font-size: .8em; color: var(--sub); line-height: 1.45; }
+.hint b { color: var(--ink); }
+.red { color: var(--red); } .amber { color: var(--amber); } .teal { color: var(--teal); } .blue { color: var(--blue); } .violet { color: var(--violet); } .sub { color: var(--sub); }
+canvas { display: block; }
+.m { font-family: "Cambria Math", Cambria, "Times New Roman", serif; font-size: 1.08em; }

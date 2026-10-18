@@ -1,0 +1,1347 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "deck-studio の仕組み",
+    "author": "",
+    "created": "2026-10-16"
+  },
+  "theme": {
+    "fonts": {
+      "head": "Meiryo",
+      "body": "Meiryo"
+    },
+    "colors": {
+      "dk1": "1F2933",
+      "lt1": "FFFFFF",
+      "dk2": "0B4F6C",
+      "lt2": "EEF2F5",
+      "accent1": "0B4F6C",
+      "accent2": "2A9D8F",
+      "accent3": "E9C46A",
+      "accent4": "F4A261",
+      "accent5": "7A869A",
+      "accent6": "E76F51"
+    }
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "background": {
+        "color": "dk2"
+      },
+      "elements": [
+        {
+          "id": "s1-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 220,
+          "w": 1160,
+          "h": 150,
+          "style": {
+            "fontSize": 40,
+            "bold": true,
+            "color": "lt1",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "メモを投げると、ドラッグで直せるスライドが出てくる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s1-sub",
+          "type": "text",
+          "x": 60,
+          "y": 390,
+          "w": 1160,
+          "h": 80,
+          "style": {
+            "fontSize": 20,
+            "color": "lt2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "deck-studio の仕組みと使い方"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s1-meta",
+          "type": "text",
+          "role": "caption",
+          "x": 60,
+          "y": 605,
+          "w": 1160,
+          "h": 48,
+          "style": {
+            "fontSize": 12,
+            "color": "lt2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "2026-10-16 ・ サンプルデッキ"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s1-logo",
+          "type": "image",
+          "x": 1100,
+          "y": 560,
+          "w": 96,
+          "h": 96,
+          "src": "assets/logo.png",
+          "fit": "contain"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "background": {
+        "color": "dk2"
+      },
+      "elements": [
+        {
+          "id": "s2-num",
+          "type": "text",
+          "x": 60,
+          "y": 180,
+          "w": 300,
+          "h": 125,
+          "style": {
+            "fontSize": 60,
+            "bold": true,
+            "color": "accent3",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "01"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 317,
+          "w": 1160,
+          "h": 105,
+          "style": {
+            "fontSize": 36,
+            "bold": true,
+            "color": "lt1"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "いま何に困っているか"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s2-lead",
+          "type": "text",
+          "x": 60,
+          "y": 432,
+          "w": 1160,
+          "h": 96,
+          "style": {
+            "fontSize": 16,
+            "color": "lt2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "画像生成のスライドは「いい案」でも、そこから先に進めない"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "elements": [
+        {
+          "id": "s3-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 43,
+          "w": 1160,
+          "h": 86,
+          "style": {
+            "fontSize": 30,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "画像で作ったスライドは、直せない"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s3-card1",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 60,
+          "y": 154,
+          "w": 366,
+          "h": 490,
+          "fill": "lt2",
+          "radius": 12
+        },
+        {
+          "id": "s3-card1-head",
+          "type": "text",
+          "x": 89,
+          "y": 183,
+          "w": 308,
+          "h": 48,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "文言を直せない"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s3-card1-body",
+          "type": "text",
+          "x": 89,
+          "y": 245,
+          "w": 308,
+          "h": 380,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "誤字・数値・言い回しを変えるたびに、画像を作り直す必要がある。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s3-card2",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 456,
+          "y": 154,
+          "w": 366,
+          "h": 490,
+          "fill": "lt2",
+          "radius": 12
+        },
+        {
+          "id": "s3-card2-head",
+          "type": "text",
+          "x": 485,
+          "y": 183,
+          "w": 308,
+          "h": 48,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "配置を動かせない"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s3-card2-body",
+          "type": "text",
+          "x": 485,
+          "y": 245,
+          "w": 308,
+          "h": 380,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "図を少し右へ、見出しを少し大きく、ができない。全体を再生成するしかない。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s3-card3",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 852,
+          "y": 154,
+          "w": 366,
+          "h": 490,
+          "fill": "lt2",
+          "radius": 12
+        },
+        {
+          "id": "s3-card3-head",
+          "type": "text",
+          "x": 881,
+          "y": 183,
+          "w": 308,
+          "h": 48,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "会社の体裁に合わない"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s3-card3-body",
+          "type": "text",
+          "x": 881,
+          "y": 245,
+          "w": 308,
+          "h": 380,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "指定フォントや配色に合わせる手段がない。画像なので差し替えもきかない。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "elements": [
+        {
+          "id": "s4-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 43,
+          "w": 1160,
+          "h": 86,
+          "style": {
+            "fontSize": 30,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "人がやるのは 2 工程だけ"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-c1",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 149,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "fill": "accent1"
+        },
+        {
+          "id": "s4-n1",
+          "type": "text",
+          "x": 149,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-h1",
+          "type": "text",
+          "x": 60,
+          "y": 250,
+          "w": 254,
+          "h": 58,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "メモを渡す"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-b1",
+          "type": "text",
+          "x": 60,
+          "y": 312,
+          "w": 254,
+          "h": 330,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "箇条書き、Excel、図面PDF、Copilot の画像案、何でもよい。アプリの横で Claude Code に伝える。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-a1",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 319,
+          "y": 182,
+          "w": 38,
+          "h": 20
+        },
+        {
+          "id": "s4-c2",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 451,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "fill": "accent1"
+        },
+        {
+          "id": "s4-n2",
+          "type": "text",
+          "x": 451,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-h2",
+          "type": "text",
+          "x": 362,
+          "y": 250,
+          "w": 254,
+          "h": 58,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "構成案を確認"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-b2",
+          "type": "text",
+          "x": 362,
+          "y": 312,
+          "w": 254,
+          "h": 330,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "タイトルと各スライドの一行要約を提示。OK なら生成、違えばここで直す。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-a2",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 621,
+          "y": 182,
+          "w": 38,
+          "h": 20
+        },
+        {
+          "id": "s4-c3",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 753,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "fill": "accent1"
+        },
+        {
+          "id": "s4-n3",
+          "type": "text",
+          "x": 753,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "3"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-h3",
+          "type": "text",
+          "x": 664,
+          "y": 250,
+          "w": 254,
+          "h": 58,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "生成"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-b3",
+          "type": "text",
+          "x": 664,
+          "y": 312,
+          "w": 254,
+          "h": 330,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "deck.json が書かれた瞬間に、このアプリが描画する。全要素がネイティブ。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-a3",
+          "type": "shape",
+          "shape": "arrow",
+          "x": 923,
+          "y": 182,
+          "w": 38,
+          "h": 20
+        },
+        {
+          "id": "s4-c4",
+          "type": "shape",
+          "shape": "ellipse",
+          "x": 1055,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "fill": "accent1"
+        },
+        {
+          "id": "s4-n4",
+          "type": "text",
+          "x": 1055,
+          "y": 154,
+          "w": 77,
+          "h": 77,
+          "style": {
+            "fontSize": 22,
+            "bold": true,
+            "color": "lt1",
+            "align": "center",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "4"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-h4",
+          "type": "text",
+          "x": 966,
+          "y": 250,
+          "w": 254,
+          "h": 58,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "直す"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s4-b4",
+          "type": "text",
+          "x": 966,
+          "y": 312,
+          "w": 254,
+          "h": 330,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "ドラッグで直すか、「3 枚目を柔らかく」と伝えて直してもらう。どちらでも同じファイルに戻る。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "elements": [
+        {
+          "id": "s5-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 43,
+          "w": 1160,
+          "h": 86,
+          "style": {
+            "fontSize": 30,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "このデッキの要素はすべて編集できる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s5-table",
+          "type": "table",
+          "x": 60,
+          "y": 154,
+          "w": 1160,
+          "h": 300,
+          "colW": [
+            307,
+            432,
+            421
+          ],
+          "rows": [
+            [
+              {
+                "text": "要素"
+              },
+              {
+                "text": "画面上"
+              },
+              {
+                "text": "pptx 書き出し"
+              }
+            ],
+            [
+              {
+                "text": "タイトル・本文"
+              },
+              {
+                "text": "テキストボックス"
+              },
+              {
+                "text": "テキストボックス(プレースホルダー)"
+              }
+            ],
+            [
+              {
+                "text": "カード・番号・矢印"
+              },
+              {
+                "text": "SVG 図形"
+              },
+              {
+                "text": "図形(角丸四角・円・線)"
+              }
+            ],
+            [
+              {
+                "text": "表"
+              },
+              {
+                "text": "HTML 表"
+              },
+              {
+                "text": "ネイティブ表"
+              }
+            ],
+            [
+              {
+                "text": "グラフ"
+              },
+              {
+                "text": "Chart.js(動く)"
+              },
+              {
+                "text": "ネイティブグラフ"
+              }
+            ],
+            [
+              {
+                "text": "配色・フォント"
+              },
+              {
+                "text": "テーマ(スキーム色)"
+              },
+              {
+                "text": "テーマ(theme1.xml)"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "elements": [
+        {
+          "id": "s6-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 43,
+          "w": 1160,
+          "h": 86,
+          "style": {
+            "fontSize": 30,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "スライド 1 本あたりの作業時間(サンプル値)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-chart",
+          "type": "chart",
+          "x": 60,
+          "y": 154,
+          "w": 565,
+          "h": 490,
+          "chart": {
+            "kind": "bar",
+            "title": "工程別の所要時間(分)",
+            "labels": [
+              "構成",
+              "文章",
+              "体裁",
+              "修正"
+            ],
+            "series": [
+              {
+                "name": "従来",
+                "values": [
+                  40,
+                  60,
+                  90,
+                  45
+                ]
+              },
+              {
+                "name": "deck-studio",
+                "values": [
+                  15,
+                  5,
+                  0,
+                  10
+                ]
+              }
+            ],
+            "options": {
+              "showValues": true,
+              "legend": "bottom"
+            }
+          }
+        },
+        {
+          "id": "s6-v1",
+          "type": "text",
+          "x": 655,
+          "y": 173,
+          "w": 268,
+          "h": 125,
+          "style": {
+            "fontSize": 54,
+            "bold": true,
+            "color": "accent1",
+            "align": "center",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "235分"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-l1",
+          "type": "text",
+          "x": 655,
+          "y": 312,
+          "w": 268,
+          "h": 60,
+          "style": {
+            "fontSize": 13,
+            "color": "accent5",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "従来の合計"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-v2",
+          "type": "text",
+          "x": 952,
+          "y": 173,
+          "w": 268,
+          "h": 125,
+          "style": {
+            "fontSize": 54,
+            "bold": true,
+            "color": "accent1",
+            "align": "center",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "30分"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-l2",
+          "type": "text",
+          "x": 952,
+          "y": 312,
+          "w": 268,
+          "h": 60,
+          "style": {
+            "fontSize": 13,
+            "color": "accent5",
+            "align": "center"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "deck-studio の合計"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s6-callout",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 655,
+          "y": 490,
+          "w": 565,
+          "h": 115,
+          "fill": "accent1",
+          "radius": 10
+        },
+        {
+          "id": "s6-callout-text",
+          "type": "text",
+          "x": 684,
+          "y": 490,
+          "w": 507,
+          "h": 115,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "lt1",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "体裁を整える時間がゼロになり、修正は「伝えるだけ」か「ドラッグ」になる"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "elements": [
+        {
+          "id": "s7-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 43,
+          "w": 1160,
+          "h": 86,
+          "style": {
+            "fontSize": 30,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "Copilot の画像案も、そのまま活かせる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-h1",
+          "type": "text",
+          "x": 60,
+          "y": 154,
+          "w": 565,
+          "h": 48,
+          "style": {
+            "fontSize": 20,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "画像を「設計図」として渡す"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-bullets",
+          "type": "text",
+          "x": 60,
+          "y": 212,
+          "w": 565,
+          "h": 432,
+          "style": {
+            "fontSize": 16,
+            "paraSpacing": 12
+          },
+          "paragraphs": [
+            {
+              "bullet": true,
+              "runs": [
+                {
+                  "text": "気に入った画像案を inputs/ に置く"
+                }
+              ]
+            },
+            {
+              "bullet": true,
+              "runs": [
+                {
+                  "text": "「これを再現して」と伝える"
+                }
+              ]
+            },
+            {
+              "bullet": true,
+              "level": 1,
+              "runs": [
+                {
+                  "text": "レイアウト・文言を読み取り、同じ構成をネイティブ要素で組み直す"
+                }
+              ]
+            },
+            {
+              "bullet": true,
+              "runs": [
+                {
+                  "text": "以後は文言・配置・色を自由に直せる"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-h2",
+          "type": "text",
+          "x": 655,
+          "y": 154,
+          "w": 565,
+          "h": 48,
+          "style": {
+            "fontSize": 20,
+            "bold": true,
+            "color": "dk2"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "使い分け"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-card1",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 655,
+          "y": 212,
+          "w": 565,
+          "h": 201,
+          "fill": "lt2",
+          "radius": 12
+        },
+        {
+          "id": "s7-card1-head",
+          "type": "text",
+          "x": 684,
+          "y": 241,
+          "w": 507,
+          "h": 48,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "発想が欲しいとき"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-card1-body",
+          "type": "text",
+          "x": 684,
+          "y": 303,
+          "w": 507,
+          "h": 90,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "Copilot で画像案を複数出して、良いものを選ぶ。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-card2",
+          "type": "shape",
+          "shape": "roundRect",
+          "x": 655,
+          "y": 443,
+          "w": 565,
+          "h": 201,
+          "fill": "lt2",
+          "radius": 12
+        },
+        {
+          "id": "s7-card2-head",
+          "type": "text",
+          "x": 684,
+          "y": 472,
+          "w": 507,
+          "h": 48,
+          "style": {
+            "fontSize": 18,
+            "bold": true,
+            "color": "dk2",
+            "valign": "middle"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "提出物にするとき"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s7-card2-body",
+          "type": "text",
+          "x": 684,
+          "y": 534,
+          "w": 507,
+          "h": 90,
+          "style": {
+            "fontSize": 14
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "選んだ案を deck-studio で編集可能な形に起こし、必要なら pptx に書き出す。"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "background": {
+        "color": "dk2"
+      },
+      "elements": [
+        {
+          "id": "s8-title",
+          "type": "text",
+          "role": "title",
+          "x": 60,
+          "y": 211,
+          "w": 1160,
+          "h": 115,
+          "style": {
+            "fontSize": 36,
+            "bold": true,
+            "color": "lt1",
+            "valign": "bottom"
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "次にやること"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "s8-body",
+          "type": "text",
+          "x": 60,
+          "y": 346,
+          "w": 1160,
+          "h": 240,
+          "style": {
+            "fontSize": 18,
+            "color": "lt2",
+            "paraSpacing": 8
+          },
+          "paragraphs": [
+            {
+              "runs": [
+                {
+                  "text": "M2: ドラッグ・リサイズ・テキスト直接編集を入れる"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "M3: pptx / PDF 書き出し"
+                }
+              ]
+            },
+            {
+              "runs": [
+                {
+                  "text": "M4: Claude Code から「○○の報告作って」で一式が出るようにする"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
