@@ -1,0 +1,301 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>伝令の道</title>
+<style>/* lumifold-codex のウィジェット共通(古い書庫のテーマ)。1em = iframe の幅 / --cols(各ウィジェットが決める)。
+   革 = 枠、羊皮紙 = 地、金 = 選択・強調、朱 = 動いているもの・注意、青緑 = Rust、瑠璃 = 画面(Web) */
+:root {
+  --leather: #2B1A11; --walnut: #3B2717; --paper: #F4EAD3; --paper2: #EADBB9; --card: #FBF5E6; --line: #CDB88E; --ink: #2B2118; --sub: #6B5A45; --mute: #9A8A70;
+  --gold: #C9A227; --gold-d: #8C6B1C; --gold-l: #F0D98A; --rubric: #9E3A22; --verd: #2F6E6A; --lapis: #34508A; --olive: #5F7A3A;
+  --rubric-soft: rgba(158, 58, 34, .12); --gold-soft: rgba(201, 162, 39, .24); --verd-soft: rgba(47, 110, 106, .14); --lapis-soft: rgba(52, 80, 138, .13);
+  --mono: "Cascadia Mono", Consolas, "BIZ UDGothic", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; }
+body { color: var(--ink); font: 400 calc(100vw / var(--cols, 40)) / 1.45 "BIZ UDPMincho", "Yu Mincho", "Hiragino Mincho ProN", serif; overflow: hidden; }
+.frame { height: 100%; display: flex; flex-direction: column; gap: .5em; padding: .75em .9em .8em; border-radius: .55em; position: relative;
+  background: radial-gradient(ellipse at 50% 40%, #FAF3E1 0%, var(--paper) 55%, #E8D7B0 100%);
+  border: .32em solid var(--leather); box-shadow: inset 0 0 0 .12em var(--gold), inset 0 0 1.6em rgba(110, 69, 32, .22); }
+.frame.dark { background: radial-gradient(ellipse at 50% 55%, #3A2414 0%, #1C110A 70%, #120A06 100%); color: var(--paper); }
+header { display: flex; align-items: center; gap: .6em; min-height: 1.5em; flex-wrap: wrap; }
+.tag { font-size: .8em; font-weight: 700; letter-spacing: .06em; color: var(--rubric); white-space: nowrap; font-family: "Yu Mincho", "BIZ UDPMincho", serif; }
+.tag::before { content: "❧"; margin-right: .4em; color: var(--gold-d); }
+.dark .tag { color: var(--gold-l); } .dark .tag::before { color: var(--gold); }
+.chip { margin-left: auto; font-size: .72em; padding: .12em .75em; border-radius: 999px; background: var(--paper2); color: var(--sub); white-space: nowrap; border: 1px solid var(--line); }
+.num, output, code, .code { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code, .code { font-size: .9em; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.btn { border: 1.5px solid var(--line); background: var(--card); border-radius: .35em; padding: .22em .8em; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.btn:hover { border-color: var(--gold-d); color: var(--rubric); }
+.btn.primary { background: var(--rubric); border-color: var(--rubric); color: #FFF6E6; }
+.btn.primary:hover { filter: brightness(1.12); color: #FFF6E6; }
+.btn[aria-pressed="true"] { background: var(--walnut); border-color: var(--gold-d); color: var(--gold-l); }
+.btn:disabled { opacity: .45; cursor: default; }
+.dark .btn { background: rgba(43, 26, 17, .85); border-color: rgba(201, 162, 39, .55); color: var(--paper); }
+.dark .btn:hover { border-color: var(--gold-l); color: var(--gold-l); }
+.dark .btn.primary { background: var(--rubric); border-color: var(--gold); color: #FFF6E6; }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: .35em; overflow: hidden; flex: none; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: .2em .7em; font-size: .82em; color: var(--sub); white-space: nowrap; }
+.seg button + button { border-left: 1.5px solid var(--line); }
+.seg button.on { background: var(--walnut); color: var(--gold-l); font-weight: 700; }
+.dark .seg { background: rgba(43, 26, 17, .85); border-color: rgba(201, 162, 39, .55); }
+.dark .seg button { color: #D9C9A6; } .dark .seg button + button { border-left-color: rgba(201, 162, 39, .4); }
+.dark .seg button.on { background: var(--gold); color: var(--leather); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .45em .8em; }
+label { display: inline-flex; align-items: center; gap: .45em; font-size: .85em; color: var(--sub); white-space: nowrap; }
+label b { color: var(--ink); }
+input[type=range] { width: 8em; accent-color: var(--rubric); margin: 0; }
+output { color: var(--ink); min-width: 3.2em; display: inline-block; font-weight: 700; }
+.tile { background: var(--card); border: 1.5px solid var(--line); border-radius: .4em; padding: .25em .6em .3em; min-width: 0; }
+.tile .k { font-size: .72em; color: var(--sub); white-space: nowrap; }
+.tile .v { font-size: 1.2em; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hint { font-size: .85em; color: var(--ink); line-height: 1.55; background: var(--card); border-left: .3em solid var(--gold); border-radius: .3em; padding: .35em .7em; }
+.hint b { color: var(--rubric); }
+.parch { background: linear-gradient(180deg, #FBF4E2, #F1E4C6); color: var(--ink); border: 1.5px solid var(--gold-d); border-radius: .45em;
+  box-shadow: 0 .3em 1.2em rgba(0, 0, 0, .45), inset 0 0 0 .18em rgba(201, 162, 39, .25); }
+.badge { display: inline-block; font-size: .72em; font-weight: 700; padding: .05em .55em; border-radius: .3em; border: 1px solid currentColor; white-space: nowrap; }
+.rubric { color: var(--rubric); } .verd { color: var(--verd); } .lapis { color: var(--lapis); } .sub { color: var(--sub); } .goldtx { color: var(--gold-d); }
+svg { display: block; }
+svg text { font-family: "BIZ UDPMincho", "Yu Mincho", serif; }
+.panel { background: var(--card); border: 1.5px solid var(--line); border-radius: .45em; min-width: 0; min-height: 0; position: relative; }
+.panel > .ptitle { position: absolute; left: .55em; top: .3em; font-size: .72em; font-weight: 700; color: var(--sub); letter-spacing: .05em; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+:root { --cols: 40; }
+.stage { flex: 1; min-height: 0; position: relative; }
+.stage svg { width: 100%; height: 100%; }
+.col-bg { stroke-width: 1.2; }
+.node rect { fill: #FFFBF0; stroke: var(--line); stroke-width: 1.4; transition: stroke .2s, fill .2s; }
+.node .t { font-size: 13px; font-weight: 700; fill: var(--ink); }
+.node .s { font-size: 10.5px; fill: var(--sub); font-family: var(--mono); }
+.node.hot rect { stroke: var(--gold-d); stroke-width: 2.4; fill: #FFF3CF; }
+.node.alert rect { stroke: var(--rubric); stroke-width: 2.2; fill: #FBE5DA; }
+.edge { fill: none; stroke: #BFA77A; stroke-width: 1.4; stroke-dasharray: 3 4; }
+.colname { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; }
+.token circle { stroke: #FFF6E0; stroke-width: 2; }
+.token text { font-size: 10px; font-weight: 700; fill: #FFF6E6; font-family: "Yu Mincho", serif; }
+.stamp { font-size: 12px; font-weight: 700; fill: var(--rubric); }
+#bar { fill: var(--gold); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4em; }
+.log { font-size: .7em; line-height: 1.55; background: #FFFBF0; border: 1.5px solid var(--line); border-radius: .4em; padding: .35em .6em; height: 6.6em; overflow: hidden; }
+.log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log .h { color: var(--lapis); } .log .a { color: var(--rubric); } .log .e { color: var(--verd); } .log .n { color: var(--sub); }
+.log b { font-weight: 700; margin-right: .3em; }
+.log code { font-size: .95em; }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 02 · 伝令の道</span><span class="chip" id="speedChip">400ms を 5 倍ゆっくり見せています</span></header>
+<div class="stage"><svg id="svg" viewBox="0 0 600 300" aria-label="画面・Rust・ディスクの間を手紙が行き来する図"></svg></div>
+<div class="tiles">
+  <div class="tile"><div class="k">書き込み(write_deck)</div><div class="v num" id="tSaves">0</div></div>
+  <div class="tile"><div class="k">まとめた編集</div><div class="v num" id="tMerged">0</div></div>
+  <div class="tile"><div class="k">読み直さず</div><div class="v num" id="tIgnored">0</div></div>
+  <div class="tile"><div class="k">控え .history/</div><div class="v num" id="tBackups">0</div></div>
+</div>
+<div class="log" id="log" aria-live="polite"></div>
+<div class="controls">
+  <button class="btn primary" id="human">人が動かす</button>
+  <button class="btn" id="ai">Claude Code が書く</button>
+  <button class="btn" id="revert" disabled>元に戻す</button>
+  <div class="seg" id="speed"><button data-v="slow" class="on" aria-pressed="true">ゆっくり</button><button data-v="real" aria-pressed="false">実際の速さ</button></div>
+  <button class="btn" id="reset">最初から</button>
+</div>
+</div>
+<script>"use strict";
+// lumifold-codex のウィジェット共通: 要素の取得、切り替えボタン、乱数、状態の保存と復元(deck-studio:widget-state / widget-restore)
+const $ = (id) => document.getElementById(id);
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const reducedMotion = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
+function segment(el, onPick) {
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { setSeg(el, b.dataset.v); onPick(b.dataset.v); }));
+}
+function setSeg(el, v) { el.querySelectorAll("button").forEach((b) => { const on = b.dataset.v === String(v); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); }); }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+let publishing = false;
+function publish(state) { if (publishing && parent !== window) parent.postMessage({ type: "deck-studio:widget-state", state }, "*"); }
+function onRestore(fn) {
+  window.addEventListener("message", (e) => {
+    if (e.source !== parent || e.data?.type !== "deck-studio:widget-restore" || !e.data.state) return;
+    const p = publishing; publishing = false; fn(e.data.state); publishing = p;
+  });
+}
+function ready() { publishing = true; if (parent !== window) parent.postMessage({ type: "deck-studio:widget-ready" }, "*"); }
+
+const NS = "http://www.w3.org/2000/svg";
+const svg = $("svg");
+const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent.appendChild(e); return e; };
+const text = (x, y, s, cls, parent, anchor = "middle") => { const t = el("text", { x, y, class: cls, "text-anchor": anchor, "dominant-baseline": "central" }, parent); t.textContent = s; return t; };
+
+// ------------------------------------------------------------ 図(3 つの世界と、その中の持ち場)
+const COLS = [
+  { x: 8, w: 196, name: "画面(WebView2)", color: "#34508A", soft: "rgba(52,80,138,.08)" },
+  { x: 214, w: 182, name: "Rust(lumifold.exe)", color: "#2F6E6A", soft: "rgba(47,110,106,.09)" },
+  { x: 406, w: 186, name: "ディスクと外の書き手", color: "#8C6B1C", soft: "rgba(201,162,39,.12)" },
+];
+for (const c of COLS) {
+  el("rect", { x: c.x, y: 4, width: c.w, height: 292, rx: 8, fill: c.soft, stroke: c.color, "stroke-opacity": .35, class: "col-bg" });
+  text(c.x + c.w / 2, 18, c.name, "colname", svg).setAttribute("fill", c.color);
+}
+const N = {
+  ed: { x: 22, y: 34, w: 168, h: 46, t: "編集", s: "patchElements()" },
+  st: { x: 22, y: 94, w: 168, h: 46, t: "状態 store", s: "zustand + zundo" },
+  tm: { x: 22, y: 154, w: 168, h: 46, t: "自動保存の待ち", s: "setTimeout 400ms" },
+  bn: { x: 22, y: 226, w: 168, h: 58, t: "外の変更の帯", s: "diffDecks()" },
+  iv: { x: 228, y: 34, w: 154, h: 46, t: "write_deck", s: "invoke で届く" },
+  tp: { x: 228, y: 94, w: 154, h: 46, t: "書いて置き換え", s: ".tmp → rename" },
+  wa: { x: 228, y: 154, w: 154, h: 46, t: "見張り notify", s: "emit deck-changed" },
+  bk: { x: 228, y: 226, w: 154, h: 58, t: "控え backup_deck", s: ".history/" },
+  fl: { x: 422, y: 60, w: 154, h: 84, t: "資料.deck", s: "版 v1" },
+  cc: { x: 422, y: 196, w: 154, h: 76, t: "Claude Code", s: "外の書き手" },
+};
+const center = (k) => ({ x: N[k].x + N[k].w / 2, y: N[k].y + N[k].h / 2 });
+const EDGES = [["ed", "st"], ["st", "tm"], ["tm", "iv"], ["iv", "tp"], ["tp", "fl"], ["fl", "wa"], ["wa", "st"], ["st", "bk"], ["bk", "bn"], ["cc", "fl"]];
+const edgeLayer = el("g", {});
+for (const [a, b] of EDGES) { const p = center(a), q = center(b); el("line", { x1: p.x, y1: p.y, x2: q.x, y2: q.y, class: "edge" }, edgeLayer); }
+for (const [k, n] of Object.entries(N)) {
+  const g = el("g", { class: "node", id: `n-${k}` });
+  el("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 7 }, g);
+  n.tEl = text(n.x + n.w / 2 + (k === "fl" ? 10 : 0), n.y + (k === "fl" ? 30 : k === "bn" || k === "bk" || k === "cc" ? 18 : 16), n.t, "t", g);
+  n.sEl = text(n.x + n.w / 2, n.y + (k === "fl" ? 52 : k === "bn" || k === "bk" || k === "cc" ? 36 : 33), n.s, "s", g);
+  n.g = g;
+}
+// ファイルの絵(角の折れた紙)
+el("path", { d: `M${N.fl.x + 10} ${N.fl.y + 10} h14 l6 6 v20 h-20 z`, fill: "#F4EAD3", stroke: "#8C6B1C", "stroke-width": 1.2 }, N.fl.g);
+el("path", { d: `M${N.fl.x + 24} ${N.fl.y + 10} v6 h6`, fill: "none", stroke: "#8C6B1C", "stroke-width": 1.2 }, N.fl.g);
+const verEl = text(N.fl.x + N.fl.w / 2, N.fl.y + 70, "lastSavedText = v1", "s", N.fl.g);
+// 待ちの帯
+el("rect", { x: N.tm.x + 10, y: N.tm.y + N.tm.h - 7, width: N.tm.w - 20, height: 3.5, rx: 2, fill: "#E8DCC0" });
+const bar = el("rect", { id: "bar", x: N.tm.x + 10, y: N.tm.y + N.tm.h - 7, width: 0, height: 3.5, rx: 2 });
+const banner = text(N.bn.x + N.bn.w / 2, N.bn.y + 47, "", "stamp", N.bn.g);
+const tokenLayer = el("g", {});
+
+// ------------------------------------------------------------ 状態
+const S = { speed: "slow", version: 1, lastSaved: 1, saves: 0, merged: 0, ignored: 0, backups: 0, external: 0, before: null, timer: null };
+const HOP = () => (S.speed === "slow" ? 620 : 90), WAIT = () => (S.speed === "slow" ? 2000 : 400);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let gen = 0; // 「最初から」で走っている手紙を止める
+function render() {
+  $("tSaves").textContent = S.saves; $("tMerged").textContent = S.merged; $("tIgnored").textContent = S.ignored;
+  $("tBackups").textContent = S.backups > 30 ? "30(古い物は消す)" : S.backups;
+  N.fl.sEl.textContent = `版 v${S.version}`; verEl.textContent = `最後に書いた版 = v${S.lastSaved}`;
+  banner.textContent = S.external ? `変更 ${S.external} 回 · 元に戻せる` : "";
+  N.bn.g.classList.toggle("alert", !!S.external);
+  $("revert").disabled = !S.external;
+  Object.assign(document.body.dataset, { saves: S.saves, merged: S.merged, ignored: S.ignored, backups: S.backups, version: S.version, banner: S.external ? "on" : "off" });
+}
+function flash(k, cls = "hot") { const g = N[k].g; g.classList.add(cls); setTimeout(() => g.classList.remove(cls), Math.max(300, HOP())); }
+const logEl = $("log");
+function log(kind, who, msg) {
+  const d = document.createElement("div"); d.className = kind;
+  d.innerHTML = `<b>${who}</b> ${msg}`;
+  logEl.prepend(d); while (logEl.children.length > 5) logEl.lastChild.remove();
+}
+const TOKEN = { h: ["#34508A", "人"], a: ["#9E3A22", "AI"], e: ["#2F6E6A", "知"], s: ["#8C6B1C", "保"] };
+function token(kind, at) {
+  const g = el("g", { class: "token" }, tokenLayer), p = center(at);
+  el("circle", { r: 10, fill: TOKEN[kind][0] }, g); text(0, 0.5, TOKEN[kind][1], "", g);
+  g.setAttribute("transform", `translate(${p.x} ${p.y})`); g.pos = p; return g;
+}
+async function move(g, to, my) {
+  const a = g.pos, b = center(to), dur = HOP(), t0 = performance.now();
+  if (reducedMotion()) { g.pos = b; g.setAttribute("transform", `translate(${b.x} ${b.y})`); await sleep(dur * 0.3); }
+  else await new Promise((done) => {
+    const step = (now) => {
+      if (my !== gen) { done(); return; }
+      const t = Math.min(1, (now - t0) / dur), e = ease(t);
+      g.setAttribute("transform", `translate(${lerp(a.x, b.x, e)} ${lerp(a.y, b.y, e)})`);
+      if (t < 1) requestAnimationFrame(step); else done();
+    };
+    requestAnimationFrame(step);
+  });
+  g.pos = b;
+  if (my === gen) flash(to);
+}
+const alive = (my, g) => { if (my !== gen) { g?.remove(); return false; } return true; };
+
+// ------------------------------------------------------------ 流れ
+async function humanEdit() {
+  const my = gen, g = token("h", "ed");
+  flash("ed"); log("h", "人", "要素をドラッグ → <code>patchElements()</code> で本文が新しくなる");
+  await move(g, "st", my); if (!alive(my, g)) return;
+  log("h", "store", "<code>zundo</code> が過去の本文を 1 歩積む。<code>subscribe</code> が保存の待ちを掛ける");
+  await move(g, "tm", my); g.remove(); if (my !== gen) return;
+  armTimer(my);
+}
+function armTimer(my) {
+  if (S.timer) { S.merged++; log("n", "待ち", "まだ 400ms たっていない → 待ちを掛け直す(保存は 1 回にまとまる)"); clearTimeout(S.timer.id); }
+  const wait = WAIT(), t0 = performance.now();
+  S.timer = { id: setTimeout(() => { S.timer = null; bar.setAttribute("width", 0); save(my); }, wait), t0, wait };
+  render();
+}
+function tickBar() {
+  if (S.timer) { const f = Math.min(1, (performance.now() - S.timer.t0) / S.timer.wait); bar.setAttribute("width", (N.tm.w - 20) * f); }
+  requestAnimationFrame(tickBar);
+}
+async function save(my) {
+  if (my !== gen) return;
+  const g = token("s", "tm");
+  log("h", "保存", '<code>invoke("write_deck", { path, text })</code> で Rust へ');
+  await move(g, "iv", my); if (!alive(my, g)) return;
+  await move(g, "tp", my); if (!alive(my, g)) return;
+  log("e", "Rust", "<code>資料.deck.tmp</code> に全部書く → <code>rename</code> で一瞬で置き換え");
+  await move(g, "fl", my); g.remove(); if (my !== gen) return;
+  S.version++; S.lastSaved = S.version; S.saves++; render();
+  watch(my, "self");
+}
+async function aiWrite() {
+  const my = gen, g = token("a", "cc");
+  flash("cc"); log("a", "Claude Code", "資料.deck を直接書き換える(アプリを通さない)");
+  await move(g, "fl", my); g.remove(); if (my !== gen) return;
+  if (!S.external) S.before = S.lastSaved;
+  S.version++; render();
+  watch(my, "ai");
+}
+async function watch(my, who) {
+  const g = token("e", "fl");
+  await move(g, "wa", my); if (!alive(my, g)) return;
+  log("e", "notify", 'フォルダの変化を見つけ、<code>emit("deck-changed")</code>');
+  await move(g, "st", my); if (!alive(my, g)) return;
+  if (S.version === S.lastSaved) {
+    S.ignored++; render(); stamp("st", "無視");
+    log("n", "store", "届いた本文が <code>lastSavedText</code> と同じ → 自分の書き込みなので読み直さない");
+    g.remove(); return;
+  }
+  log("a", "store", "本文が違う → 外の書き換え。取り込む前に控えを残す");
+  await move(g, "bk", my); if (!alive(my, g)) return;
+  S.backups++; render();
+  log("e", "Rust", "<code>backup_deck</code>: 取り込む直前の本文を <code>.history/</code> へ(新しい方から 30 世代)");
+  await move(g, "bn", my); g.remove(); if (my !== gen) return;
+  S.lastSaved = S.version; S.external++; render();
+  log("a", "帯", "<code>diffDecks()</code> で id ごとに突き合わせ、「変更 1 枚」と点線の枠を出す");
+}
+function stamp(k, s) {
+  const p = center(k), t = text(p.x + N[k].w / 2 - 22, p.y - N[k].h / 2 + 10, s, "stamp", tokenLayer);
+  t.setAttribute("transform", `rotate(-8 ${p.x + N[k].w / 2 - 22} ${p.y - N[k].h / 2 + 10})`);
+  setTimeout(() => t.remove(), Math.max(900, HOP() * 2.2));
+}
+async function revert() {
+  if (!S.external) return;
+  const my = gen;
+  log("h", "人", `「元に戻す」: 最初の書き換えの前(v${S.before})の本文に戻す。これも人の編集なので保存される`);
+  S.external = 0; render();
+  const g = token("h", "bn");
+  await move(g, "st", my); if (!alive(my, g)) return;
+  await move(g, "tm", my); g.remove(); if (my !== gen) return;
+  armTimer(my);
+}
+function reset() {
+  gen++; if (S.timer) clearTimeout(S.timer.id);
+  Object.assign(S, { version: 1, lastSaved: 1, saves: 0, merged: 0, ignored: 0, backups: 0, external: 0, before: null, timer: null });
+  tokenLayer.replaceChildren(); bar.setAttribute("width", 0); logEl.replaceChildren();
+  log("n", "", "「人が動かす」を何回か素早く押すか、「Claude Code が書く」を押してみよう");
+  render();
+}
+$("human").addEventListener("click", humanEdit);
+$("ai").addEventListener("click", aiWrite);
+$("revert").addEventListener("click", revert);
+$("reset").addEventListener("click", reset);
+segment($("speed"), (v) => { S.speed = v; $("speedChip").textContent = v === "slow" ? "400ms を 5 倍ゆっくり見せています" : "実際の速さ(待ちは 400ms)"; publish({ speed: v }); });
+onRestore((s) => { if (s.speed === "slow" || s.speed === "real") { S.speed = s.speed; setSeg($("speed"), s.speed); $("speedChip").textContent = s.speed === "slow" ? "400ms を 5 倍ゆっくり見せています" : "実際の速さ(待ちは 400ms)"; } });
+reset(); tickBar(); ready();
+</script></body></html>

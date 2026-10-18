@@ -1,0 +1,285 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>折り目の幾何</title>
+<style>/* lumifold-codex のウィジェット共通(古い書庫のテーマ)。1em = iframe の幅 / --cols(各ウィジェットが決める)。
+   革 = 枠、羊皮紙 = 地、金 = 選択・強調、朱 = 動いているもの・注意、青緑 = Rust、瑠璃 = 画面(Web) */
+:root {
+  --leather: #2B1A11; --walnut: #3B2717; --paper: #F4EAD3; --paper2: #EADBB9; --card: #FBF5E6; --line: #CDB88E; --ink: #2B2118; --sub: #6B5A45; --mute: #9A8A70;
+  --gold: #C9A227; --gold-d: #8C6B1C; --gold-l: #F0D98A; --rubric: #9E3A22; --verd: #2F6E6A; --lapis: #34508A; --olive: #5F7A3A;
+  --rubric-soft: rgba(158, 58, 34, .12); --gold-soft: rgba(201, 162, 39, .24); --verd-soft: rgba(47, 110, 106, .14); --lapis-soft: rgba(52, 80, 138, .13);
+  --mono: "Cascadia Mono", Consolas, "BIZ UDGothic", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; }
+body { color: var(--ink); font: 400 calc(100vw / var(--cols, 40)) / 1.45 "BIZ UDPMincho", "Yu Mincho", "Hiragino Mincho ProN", serif; overflow: hidden; }
+.frame { height: 100%; display: flex; flex-direction: column; gap: .5em; padding: .75em .9em .8em; border-radius: .55em; position: relative;
+  background: radial-gradient(ellipse at 50% 40%, #FAF3E1 0%, var(--paper) 55%, #E8D7B0 100%);
+  border: .32em solid var(--leather); box-shadow: inset 0 0 0 .12em var(--gold), inset 0 0 1.6em rgba(110, 69, 32, .22); }
+.frame.dark { background: radial-gradient(ellipse at 50% 55%, #3A2414 0%, #1C110A 70%, #120A06 100%); color: var(--paper); }
+header { display: flex; align-items: center; gap: .6em; min-height: 1.5em; flex-wrap: wrap; }
+.tag { font-size: .8em; font-weight: 700; letter-spacing: .06em; color: var(--rubric); white-space: nowrap; font-family: "Yu Mincho", "BIZ UDPMincho", serif; }
+.tag::before { content: "❧"; margin-right: .4em; color: var(--gold-d); }
+.dark .tag { color: var(--gold-l); } .dark .tag::before { color: var(--gold); }
+.chip { margin-left: auto; font-size: .72em; padding: .12em .75em; border-radius: 999px; background: var(--paper2); color: var(--sub); white-space: nowrap; border: 1px solid var(--line); }
+.num, output, code, .code { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code, .code { font-size: .9em; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.btn { border: 1.5px solid var(--line); background: var(--card); border-radius: .35em; padding: .22em .8em; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.btn:hover { border-color: var(--gold-d); color: var(--rubric); }
+.btn.primary { background: var(--rubric); border-color: var(--rubric); color: #FFF6E6; }
+.btn.primary:hover { filter: brightness(1.12); color: #FFF6E6; }
+.btn[aria-pressed="true"] { background: var(--walnut); border-color: var(--gold-d); color: var(--gold-l); }
+.btn:disabled { opacity: .45; cursor: default; }
+.dark .btn { background: rgba(43, 26, 17, .85); border-color: rgba(201, 162, 39, .55); color: var(--paper); }
+.dark .btn:hover { border-color: var(--gold-l); color: var(--gold-l); }
+.dark .btn.primary { background: var(--rubric); border-color: var(--gold); color: #FFF6E6; }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: .35em; overflow: hidden; flex: none; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: .2em .7em; font-size: .82em; color: var(--sub); white-space: nowrap; }
+.seg button + button { border-left: 1.5px solid var(--line); }
+.seg button.on { background: var(--walnut); color: var(--gold-l); font-weight: 700; }
+.dark .seg { background: rgba(43, 26, 17, .85); border-color: rgba(201, 162, 39, .55); }
+.dark .seg button { color: #D9C9A6; } .dark .seg button + button { border-left-color: rgba(201, 162, 39, .4); }
+.dark .seg button.on { background: var(--gold); color: var(--leather); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .45em .8em; }
+label { display: inline-flex; align-items: center; gap: .45em; font-size: .85em; color: var(--sub); white-space: nowrap; }
+label b { color: var(--ink); }
+input[type=range] { width: 8em; accent-color: var(--rubric); margin: 0; }
+output { color: var(--ink); min-width: 3.2em; display: inline-block; font-weight: 700; }
+.tile { background: var(--card); border: 1.5px solid var(--line); border-radius: .4em; padding: .25em .6em .3em; min-width: 0; }
+.tile .k { font-size: .72em; color: var(--sub); white-space: nowrap; }
+.tile .v { font-size: 1.2em; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hint { font-size: .85em; color: var(--ink); line-height: 1.55; background: var(--card); border-left: .3em solid var(--gold); border-radius: .3em; padding: .35em .7em; }
+.hint b { color: var(--rubric); }
+.parch { background: linear-gradient(180deg, #FBF4E2, #F1E4C6); color: var(--ink); border: 1.5px solid var(--gold-d); border-radius: .45em;
+  box-shadow: 0 .3em 1.2em rgba(0, 0, 0, .45), inset 0 0 0 .18em rgba(201, 162, 39, .25); }
+.badge { display: inline-block; font-size: .72em; font-weight: 700; padding: .05em .55em; border-radius: .3em; border: 1px solid currentColor; white-space: nowrap; }
+.rubric { color: var(--rubric); } .verd { color: var(--verd); } .lapis { color: var(--lapis); } .sub { color: var(--sub); } .goldtx { color: var(--gold-d); }
+svg { display: block; }
+svg text { font-family: "BIZ UDPMincho", "Yu Mincho", serif; }
+.panel { background: var(--card); border: 1.5px solid var(--line); border-radius: .45em; min-width: 0; min-height: 0; position: relative; }
+.panel > .ptitle { position: absolute; left: .55em; top: .3em; font-size: .72em; font-weight: 700; color: var(--sub); letter-spacing: .05em; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+:root { --cols: 40; }
+.stage { flex: 1; min-height: 0; position: relative; border-radius: .35em; background: radial-gradient(ellipse at 50% 45%, #4A2E1C, #23150D 80%); overflow: hidden; }
+.stage svg { width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
+.stage svg.grabbing { cursor: grabbing; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4em; }
+.mat { font: .7em/1.4 var(--mono); color: var(--verd); background: #FFFBF0; border: 1.5px solid var(--line); border-radius: .35em; padding: .25em .6em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mat b { font-family: "BIZ UDPMincho", serif; color: var(--sub); font-weight: 700; margin-right: .5em; }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 05 · 折り目の幾何</span><span class="chip" id="chip">右ページの角をつまんで引く</span></header>
+<div class="stage"><svg id="svg" viewBox="0 0 600 400" aria-label="見開きの本。右ページの角をドラッグしてめくる"></svg></div>
+<div class="tiles">
+  <div class="tile"><div class="k">引いた距離 |CP|</div><div class="v num" id="tD">0</div></div>
+  <div class="tile"><div class="k">進み具合</div><div class="v num" id="tP">0%</div></div>
+  <div class="tile"><div class="k">表の頂点</div><div class="v num" id="tF">4</div></div>
+  <div class="tile"><div class="k">裏の頂点</div><div class="v num" id="tB">0</div></div>
+</div>
+<div class="mat" id="mat"><b>裏の transform</b>—</div>
+<div class="controls">
+  <button class="btn primary" id="turn">めくる</button>
+  <button class="btn" id="geo" aria-pressed="true">作図線</button>
+  <button class="btn" id="shade" aria-pressed="true">陰</button>
+  <button class="btn" id="reset">最初の見開きへ</button>
+  <span class="sub" style="font-size:.72em;margin-left:auto">3 割を超えて離すとめくれる</span>
+</div>
+</div>
+<script>"use strict";
+// lumifold-codex のウィジェット共通: 要素の取得、切り替えボタン、乱数、状態の保存と復元(deck-studio:widget-state / widget-restore)
+const $ = (id) => document.getElementById(id);
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const reducedMotion = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
+function segment(el, onPick) {
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { setSeg(el, b.dataset.v); onPick(b.dataset.v); }));
+}
+function setSeg(el, v) { el.querySelectorAll("button").forEach((b) => { const on = b.dataset.v === String(v); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); }); }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+let publishing = false;
+function publish(state) { if (publishing && parent !== window) parent.postMessage({ type: "deck-studio:widget-state", state }, "*"); }
+function onRestore(fn) {
+  window.addEventListener("message", (e) => {
+    if (e.source !== parent || e.data?.type !== "deck-studio:widget-restore" || !e.data.state) return;
+    const p = publishing; publishing = false; fn(e.data.state); publishing = p;
+  });
+}
+function ready() { publishing = true; if (parent !== window) parent.postMessage({ type: "deck-studio:widget-ready" }, "*"); }
+
+// ------------------------------------------------------------ src/render/pageTurn.ts と同じ計算(紙が右にある向き)
+const ID = [1, 0, 0, 1, 0, 0], FLIP_X = [-1, 0, 0, 1, 0, 0];
+const compose = (p, q) => [p[0] * q[0] + p[2] * q[1], p[1] * q[0] + p[3] * q[1], p[0] * q[2] + p[2] * q[3], p[1] * q[2] + p[3] * q[3], p[0] * q[4] + p[2] * q[5] + p[4], p[1] * q[4] + p[3] * q[5] + p[5]];
+const apply = (m, p) => ({ x: m[0] * p.x + m[2] * p.y + m[4], y: m[1] * p.x + m[3] * p.y + m[5] });
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function clip(poly, f) {
+  const out = [];
+  poly.forEach((a, i) => {
+    const b = poly[(i + 1) % poly.length], fa = f(a), fb = f(b);
+    if (fa >= 0) out.push(a);
+    if (fa >= 0 !== fb >= 0) { const t = fa / (fa - fb); out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }); }
+  });
+  return out;
+}
+function constrain(p, w, h, c) {
+  let q = { x: p.x, y: c.y === 0 ? Math.max(0, p.y) : Math.min(h, p.y) };
+  const a = { x: 0, y: c.y }, da = dist(q, a);
+  if (da > w) q = { x: a.x + ((q.x - a.x) * w) / da, y: a.y + ((q.y - a.y) * w) / da };
+  const b = { x: 0, y: h - c.y }, diag = Math.hypot(w, h), db = dist(q, b);
+  if (db > diag) q = { x: b.x + ((q.x - b.x) * diag) / db, y: b.y + ((q.y - b.y) * diag) / db };
+  return q;
+}
+function foldPage(w, h, corner, pointer) {
+  const backLocal = [-1, 0, 0, 1, w, 0];
+  const c = { x: w, y: corner === "top" ? 0 : h };
+  const p = constrain(pointer, w, h, c);
+  const d = dist(c, p);
+  const rect = [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }];
+  const progress = Math.min(1, Math.max(0, (c.x - p.x) / (2 * w)));
+  if (d < 0.5) return { front: rect, back: [], backMatrix: compose(FLIP_X, backLocal), depth: 0, progress: 0, c, p, m: c, n: { x: 1, y: 0 } };
+  const n = { x: (c.x - p.x) / d, y: (c.y - p.y) / d };
+  const m = { x: (c.x + p.x) / 2, y: (c.y + p.y) / 2 };
+  const side0 = (q) => (q.x - m.x) * n.x + (q.y - m.y) * n.y; // > 0 が角の側(折り返す側)
+  const front = clip(rect, (q) => -side0(q));
+  const back = clip(rect, side0);
+  const k = 2 * (m.x * n.x + m.y * n.y);
+  const reflect = [1 - 2 * n.x * n.x, -2 * n.x * n.y, -2 * n.x * n.y, 1 - 2 * n.y * n.y, k * n.x, k * n.y];
+  return { front, back: back.map((q) => apply(backLocal, q)), backMatrix: compose(reflect, backLocal), depth: d, progress, c, p, m, n };
+}
+const arcPoint = (from, to, corner, lift, t) => { const e = ease(t), up = Math.sin(Math.PI * t) * lift * (corner === "top" ? 1 : -1); return { x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e + up }; };
+
+// ------------------------------------------------------------ 描く。本の座標: 原点は背の上端、右が +x、下が +y
+const NS = "http://www.w3.org/2000/svg", svg = $("svg");
+const PW = 222, PH = 296, OX = 300, OY = 52;
+const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent?.appendChild(e); return e; };
+svg.innerHTML = `<defs>
+  <linearGradient id="shadeUnder" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".42"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+  <linearGradient id="shadeBack" x1="0" x2="1"><stop offset="0" stop-color="#5A3A1A" stop-opacity=".35"/><stop offset=".35" stop-color="#FFF6DD" stop-opacity=".25"/><stop offset="1" stop-color="#5A3A1A" stop-opacity="0"/></linearGradient>
+  <linearGradient id="gutter" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+  <clipPath id="cFront"><polygon id="pFront"/></clipPath><clipPath id="cBack"><polygon id="pBack"/></clipPath>
+  <clipPath id="cRight"><rect x="0" y="0" width="${PW}" height="${PH}"/></clipPath><clipPath id="cBackBook"><polygon id="pBackBook"/></clipPath>
+  <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2E7BD6"/></marker>
+</defs>`;
+const book = mk("g", { transform: `translate(${OX} ${OY})` }, svg);
+// 紙の束の厚み(左右)
+mk("rect", { x: -PW - 5, y: 3, width: PW * 2 + 10, height: PH + 2, rx: 3, fill: "#D9C69C" }, book);
+mk("rect", { x: -PW - 2.5, y: 1.5, width: PW * 2 + 5, height: PH + 1, rx: 2, fill: "#E6D6B2" }, book);
+const gLeft = mk("g", { transform: `translate(${-PW} 0)` }, book);
+const gUnder = mk("g", {}, book);
+mk("rect", { x: -18, y: 0, width: 36, height: PH, fill: "url(#gutter)", "pointer-events": "none" }, book);
+const gUnderShade = mk("g", { "clip-path": "url(#cRight)" }, book);
+const shadeUnder = mk("rect", { fill: "url(#shadeUnder)" }, gUnderShade);
+const gFront = mk("g", { "clip-path": "url(#cFront)" }, book);
+const gBackOuter = mk("g", {}, book);
+const gBack = mk("g", { "clip-path": "url(#cBack)" }, gBackOuter);
+const gBackShadeClip = mk("g", { "clip-path": "url(#cBackBook)" }, book);
+const shadeBack = mk("rect", { fill: "url(#shadeBack)" }, gBackShadeClip);
+const geo = mk("g", { "pointer-events": "none" }, book);
+const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"];
+function page(n) {
+  const col = ["#9E3A22", "#2F6E6A", "#34508A", "#8C6B1C"][n % 4], r = rng(n * 13 + 1);
+  let s = `<rect width="${PW}" height="${PH}" fill="#F4EAD3"/><rect x="8" y="8" width="${PW - 16}" height="${PH - 16}" fill="none" stroke="#B89656" stroke-width=".8" opacity=".7"/>`;
+  s += `<text x="${PW / 2}" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="${col}">第 ${n} 葉</text>`;
+  s += `<rect x="${PW / 2 - 38}" y="58" width="76" height="76" rx="4" fill="none" stroke="${col}" stroke-width="2"/><text x="${PW / 2}" y="98" text-anchor="middle" dominant-baseline="central" font-size="40" font-family="Georgia, serif" font-weight="700" fill="${col}">${ROMAN[n] || n}</text>`;
+  for (let i = 0; i < 9; i++) { const w = (i === 8 ? 0.45 : 0.7 + r() * 0.25) * (PW - 48); s += `<rect x="24" y="${154 + i * 14}" width="${w.toFixed(1)}" height="4" rx="2" fill="#6B5A45" opacity=".55"/>`; }
+  s += `<text x="${n % 2 ? PW - 18 : 18}" y="${PH - 14}" text-anchor="${n % 2 ? "end" : "start"}" font-size="10" fill="#7A6650">${n}</text>`;
+  return s;
+}
+let spread = 0; // 見開き: 左 = 2 + 2k、右 = 3 + 2k
+let showGeo = true, showShade = true, fold = null, drag = null, anim = null, corner = "bottom", hoverPeek = null;
+const pagesOf = () => ({ left: 2 + spread * 2, front: 3 + spread * 2, back: 4 + spread * 2, under: 5 + spread * 2 });
+function paintPages() {
+  const p = pagesOf();
+  gLeft.innerHTML = page(p.left); gUnder.innerHTML = page(p.under); gFront.innerHTML = page(p.front); gBack.innerHTML = page(p.back);
+}
+const pts = (a) => a.map((q) => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(" ");
+function show(f) {
+  fold = f;
+  $("pFront").setAttribute("points", pts(f.front));
+  $("pBack").setAttribute("points", pts(f.back));
+  const m = f.backMatrix;
+  gBackOuter.setAttribute("transform", `matrix(${m.map((v) => +v.toFixed(5)).join(",")})`);
+  gBackOuter.style.display = f.back.length ? "" : "none";
+  // 陰: 下のページの折り目際(角の側へ)と、裏の折り目際
+  const ang = Math.atan2(f.n.y, f.n.x) * 180 / Math.PI, k = Math.sin(Math.PI * Math.min(1, f.progress * 1.2)) ** 0.6;
+  const wU = 10 + 40 * k, wB = 18 + 36 * k;
+  shadeUnder.setAttribute("x", 0); shadeUnder.setAttribute("y", -700); shadeUnder.setAttribute("width", wU); shadeUnder.setAttribute("height", 1400);
+  shadeUnder.setAttribute("transform", `translate(${f.m.x} ${f.m.y}) rotate(${ang})`);
+  shadeUnder.style.display = showShade && f.depth > 0.5 ? "" : "none";
+  $("pBackBook").setAttribute("points", pts(f.back.map((q) => apply(m, q))));
+  shadeBack.setAttribute("x", -wB); shadeBack.setAttribute("y", -700); shadeBack.setAttribute("width", wB); shadeBack.setAttribute("height", 1400);
+  shadeBack.setAttribute("transform", `translate(${f.m.x} ${f.m.y}) rotate(${ang + 180}) translate(${wB} 0) scale(-1 1)`);
+  shadeBack.style.display = showShade && f.depth > 0.5 ? "" : "none";
+  drawGeo(f);
+  $("tD").textContent = `${f.depth.toFixed(0)} px`; $("tP").textContent = `${Math.round(f.progress * 100)}%`;
+  $("tF").textContent = f.front.length; $("tB").textContent = f.back.length;
+  $("mat").innerHTML = `<b>裏の transform</b>matrix(${m.map((v) => (+v.toFixed(3))).join(", ")})`;
+  Object.assign(document.body.dataset, { progress: f.progress.toFixed(3), depth: f.depth.toFixed(1), spread, front: f.front.length, back: f.back.length });
+}
+function drawGeo(f) {
+  geo.replaceChildren();
+  if (!showGeo || f.depth < 0.5) return;
+  const c = f.c, p = f.p, m = f.m, n = f.n, t = { x: -n.y, y: n.x };
+  const L = 520;
+  mk("circle", { cx: 0, cy: c.y, r: PW, fill: "none", stroke: "#F0D98A", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: .7 }, geo);
+  mk("circle", { cx: 0, cy: PH - c.y, r: Math.hypot(PW, PH), fill: "none", stroke: "#F0D98A", "stroke-width": 1, "stroke-dasharray": "1 4", opacity: .5 }, geo);
+  mk("line", { x1: m.x - t.x * L, y1: m.y - t.y * L, x2: m.x + t.x * L, y2: m.y + t.y * L, stroke: "#E04A2A", "stroke-width": 1.6, "stroke-dasharray": "7 5" }, geo);
+  mk("line", { x1: c.x, y1: c.y, x2: p.x, y2: p.y, stroke: "#2E7BD6", "stroke-width": 1.4, "stroke-dasharray": "3 3" }, geo);
+  mk("line", { x1: m.x, y1: m.y, x2: m.x + n.x * 34, y2: m.y + n.y * 34, stroke: "#2E7BD6", "stroke-width": 2, "marker-end": "url(#arr)" }, geo);
+  const dot = (q, label, col, dx, dy) => { mk("circle", { cx: q.x, cy: q.y, r: 4.2, fill: col, stroke: "#fff", "stroke-width": 1.5 }, geo); const tx = mk("text", { x: q.x + dx, y: q.y + dy, "font-size": 13, "font-weight": 700, fill: col, "font-family": "Georgia, serif", stroke: "#1C110A", "stroke-width": 3, "paint-order": "stroke" }, geo); tx.textContent = label; };
+  dot(c, "C", "#F0D98A", 7, c.y ? 14 : -6); dot(p, "P", "#7FB2FF", 8, -8); dot(m, "M", "#FF8A6A", 8, 14);
+  const nt = mk("text", { x: m.x + n.x * 40 + 4, y: m.y + n.y * 40, "font-size": 12, "font-style": "italic", fill: "#7FB2FF", "font-family": "Georgia, serif", stroke: "#1C110A", "stroke-width": 3, "paint-order": "stroke" }, geo); nt.textContent = "n";
+}
+function flat() { show(foldPage(PW, PH, corner, { x: PW, y: corner === "top" ? 0 : PH })); }
+
+// ------------------------------------------------------------ 操作
+function toBook(e) { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return { x: q.x - OX, y: q.y - OY }; }
+function animate(from, to, ms, lift, done) {
+  const t0 = performance.now(); anim = true;
+  const still = reducedMotion();
+  const step = (now) => {
+    const t = still ? 1 : Math.min(1, (now - t0) / ms);
+    show(foldPage(PW, PH, corner, arcPoint(from, to, corner, lift, t)));
+    if (t < 1) requestAnimationFrame(step); else { anim = null; done?.(); }
+  };
+  requestAnimationFrame(step);
+}
+function finishTurn() { spread++; paintPages(); flat(); $("chip").textContent = `めくれた: 見開き ${pagesOf().left}–${pagesOf().front}`; publish({ spread }); }
+function release(p) {
+  const f = foldPage(PW, PH, corner, p);
+  const target = f.progress >= 0.3 ? { x: -PW, y: corner === "top" ? 0 : PH } : { x: PW, y: corner === "top" ? 0 : PH };
+  const turned = f.progress >= 0.3;
+  $("chip").textContent = turned ? "3 割を超えた → めくり切る" : "足りない → 元に戻る";
+  animate(f.p, target, turned ? 420 * (1 - f.progress) + 160 : 260, turned ? 30 : 0, turned ? finishTurn : flat);
+}
+svg.addEventListener("pointerdown", (e) => {
+  if (anim) return;
+  const b = toBook(e);
+  if (b.x < PW * 0.25 || b.x > PW + 40 || b.y < -40 || b.y > PH + 40) return;
+  corner = b.y < PH / 2 ? "top" : "bottom";
+  drag = { start: b }; svg.setPointerCapture(e.pointerId); svg.classList.add("grabbing");
+  show(foldPage(PW, PH, corner, b));
+});
+svg.addEventListener("pointermove", (e) => {
+  const b = toBook(e);
+  if (drag) { show(foldPage(PW, PH, corner, b)); return; }
+  if (anim) return;
+  // 角に近づくと少しめくれる
+  const near = ["top", "bottom"].map((c) => ({ c, d: Math.hypot(b.x - PW, b.y - (c === "top" ? 0 : PH)) })).sort((a, z) => a.d - z.d)[0];
+  if (near.d < 70) { corner = near.c; const k = (70 - near.d) / 70; show(foldPage(PW, PH, corner, { x: PW - 26 * k, y: (corner === "top" ? 0 : PH) + (corner === "top" ? 16 : -16) * k })); hoverPeek = true; }
+  else if (hoverPeek) { hoverPeek = null; flat(); }
+});
+const up = (e) => { if (!drag) return; drag = null; svg.classList.remove("grabbing"); release(toBook(e)); };
+svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
+svg.addEventListener("pointerleave", () => { if (!drag && hoverPeek && !anim) { hoverPeek = null; flat(); } });
+$("turn").addEventListener("click", () => { if (anim) return; corner = "bottom"; $("chip").textContent = "角を弧に沿って運ぶ(arcPoint)"; animate({ x: PW, y: PH }, { x: -PW, y: PH }, 720, 60, finishTurn); });
+$("geo").addEventListener("click", () => { showGeo = !showGeo; $("geo").setAttribute("aria-pressed", String(showGeo)); if (fold) show(fold); });
+$("shade").addEventListener("click", () => { showShade = !showShade; $("shade").setAttribute("aria-pressed", String(showShade)); if (fold) show(fold); });
+$("reset").addEventListener("click", () => { if (anim) return; spread = 0; paintPages(); flat(); $("chip").textContent = "右ページの角をつまんで引く"; publish({ spread }); });
+onRestore((s) => { if (Number.isInteger(s.spread) && s.spread >= 0 && s.spread < 8) { spread = s.spread; paintPages(); flat(); } });
+paintPages();
+// 最初は角を少し引いた形で見せる(作図線が見えるように)
+corner = "bottom"; show(foldPage(PW, PH, corner, { x: 120, y: 236 }));
+window.__fold = { foldPage, PW, PH };
+ready();
+</script></body></html>

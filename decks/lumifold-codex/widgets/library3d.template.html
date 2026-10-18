@@ -1,0 +1,404 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>書庫の地図</title>
+<style>/*INC:_lib.css*/
+:root { --cols: 40; }
+.frame.dark { padding: 0; overflow: hidden; }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; border-radius: .25em; }
+#gl.grabbing { cursor: grabbing; }
+.top { position: absolute; left: .7em; right: .7em; top: .55em; display: flex; gap: .45em .6em; align-items: center; flex-wrap: wrap; pointer-events: none; }
+.top > * { pointer-events: auto; }
+.top .tag { text-shadow: 0 1px 3px #000; }
+.top .spacer { flex: 1; pointer-events: none; }
+.card { position: absolute; right: .7em; bottom: .7em; width: 21.5em; font-size: .8em; padding: .7em .9em .65em; max-height: calc(100% - 4.6em); overflow: auto; }
+.card .ctop { display: flex; gap: .5em; align-items: center; font-size: .9em; color: var(--sub); }
+.card h2 { margin: .2em 0 .1em; font: 700 1.45em/1.25 "Yu Mincho", "BIZ UDPMincho", serif; color: var(--rubric); }
+.card h2 .ver { font: 400 .62em var(--mono); color: var(--sub); margin-left: .35em; }
+.card .lic { font-size: .9em; color: var(--sub); margin-bottom: .35em; }
+.card .lic b { color: var(--ink); }
+.card dl { margin: 0; display: grid; grid-template-columns: 4.6em 1fr; gap: .3em .5em; }
+.card dt { font-weight: 700; color: var(--gold-d); font-size: .9em; padding-top: .05em; }
+.card dd { margin: 0; line-height: 1.55; }
+.card dd code { font-size: .88em; background: rgba(140, 107, 28, .12); padding: 0 .3em; border-radius: .2em; word-break: break-all; }
+.card .intro { line-height: 1.6; margin: .3em 0 .2em; }
+.card .nav { display: flex; align-items: center; gap: .5em; margin-top: .6em; }
+.card .nav .pos { margin: 0 auto; color: var(--sub); font-size: .9em; }
+.cat-rust { color: var(--verd); } .cat-web { color: var(--lapis); } .cat-dev { color: var(--olive); } .cat-platform { color: var(--gold-d); } .cat-core { color: var(--rubric); }
+.tip { position: absolute; pointer-events: none; font-size: .78em; padding: .2em .6em; border-radius: .3em; background: rgba(28, 17, 10, .92); color: var(--gold-l); border: 1px solid var(--gold-d); white-space: nowrap; transform: translate(-50%, -140%); display: none; }
+.foot { position: absolute; left: .8em; bottom: .6em; font-size: .72em; color: #CDB98F; text-shadow: 0 1px 2px #000; pointer-events: none; max-width: 15em; line-height: 1.45; }
+</style></head><body><div class="frame dark">
+<canvas id="gl" aria-label="技術スタックの書庫(3D)。ドラッグで見回し、本をクリックで取り出す"></canvas>
+<div class="top">
+  <span class="tag">さわれる図 01 · 書庫の地図</span>
+  <span class="spacer"></span>
+  <div class="seg" id="filter"><button data-v="all" class="on" aria-pressed="true">すべて</button><button data-v="rust" aria-pressed="false">Rust</button><button data-v="web" aria-pressed="false">画面</button><button data-v="dev" aria-pressed="false">開発用</button><button data-v="platform" aria-pressed="false">内蔵</button></div>
+  <button class="btn" id="tour" aria-pressed="true">見て回る</button>
+  <button class="btn" id="home">全体を見る</button>
+</div>
+<div class="card parch" id="card" aria-live="polite"></div>
+<div class="tip" id="tip"></div>
+<div class="foot" id="foot">ドラッグで見回す · ホイールで寄る<br>本をクリックで取り出す</div>
+</div>
+<script>/*THREE*/</script>
+<script>"use strict";
+/*INC:_lib.js*/
+/*INC:_lib3d.js*/
+// ------------------------------------------------------------ 本棚と本(tools/create-codex-deck.py の本文と同じ事実)
+const CATS = { rust: "Rust", web: "画面", dev: "開発用", platform: "内蔵", core: "本文" };
+const CAT_COLOR = { rust: ["#6E2416", "#7E3A1C"], web: ["#24365E", "#2E4472"], dev: ["#2A5550", "#3A5A34"], platform: ["#7A5A20", "#8A6A2A"] };
+const SHELVES = [
+  { id: "shell", name: "外殻の棚", sub: "Rust" }, { id: "view", name: "画面の棚", sub: "React" }, { id: "edit", name: "編集の棚", sub: "動かす・戻す" },
+  { id: "draw", name: "描画の棚", sub: "図・数式・3D" }, { id: "out", name: "書き出しの棚", sub: "pptx・内蔵の力" }, { id: "test", name: "試験の棚", sub: "確かめる" },
+];
+const B = (shelf, id, name, ver, lic, cat, role, why, where) => ({ shelf, id, name, ver, lic, cat, role, why, where });
+const BOOKS = [
+  B("shell", "tauri", "tauri", "2.12", "Apache-2.0 / MIT", "rust", "アプリの外殻。窓を作って WebView2 を開き、画面からの invoke を Rust の関数につなぐ。", "OS の WebView を使うので配布が数 MB。画面から呼べるのは登録したコマンドだけで、境界がはっきりする。", "src-tauri/src/lib.rs"),
+  B("shell", "dialog", "tauri-plugin-dialog", "2.8", "Apache-2.0 / MIT", "rust", "「開く」「保存」のダイアログ。", "OS 標準のダイアログを、許可した操作として画面から呼べる。", "src/tauri.ts(open・save)"),
+  B("shell", "notify", "notify", "7.0", "CC0-1.0", "rust", "資料のフォルダの見張り。書き換えを画面に知らせる。", "Windows・Linux・macOS の監視の仕組みを 1 つの API で扱える。フォルダごと見るので atomic rename も拾える。", "src-tauri/src/watch.rs"),
+  B("shell", "serde", "serde_json", "1.0", "MIT / Apache-2.0", "rust", "Rust の型と JSON の変換。", "Rust の定番。invoke の引数と戻り値も serde で受け渡す。", "src-tauri/src/package.rs"),
+  B("shell", "zip", "zip", "9.0", "MIT", "rust", "1 ファイルにまとめる・展開する。", "deflate だけを有効にして小さく使う。展開の上限と危ない名前の拒否は自前で足した。", "src-tauri/src/package.rs"),
+  B("shell", "base64", "base64", "0.22", "MIT / Apache-2.0", "rust", "バイト列を文字にして運ぶ。", "IPC は JSON なので、画像(data URL)や pptx を base64 の文字にして渡す。", "src-tauri/src/lib.rs"),
+  B("view", "react", "react", "18.3", "MIT", "web", "画面を部品で組む。要素の種類ごとに TextEl・ShapeEl… を分け、Slide.tsx が並べる。", "編集の部品(react-moveable)やグラフ(react-chartjs-2)の React 版がそろう。", "src/render/Slide.tsx"),
+  B("view", "reactdom", "react-dom", "18.3", "MIT", "web", "部品を本物の DOM にする。portal で操作バーを .stage に出す。", "React と対。portal で、拡縮される紙面の外に UI を置ける。", "src/editor/FloatingBar.tsx"),
+  B("view", "tauriapi", "@tauri-apps/api", "2", "Apache-2.0 / MIT", "web", "Web 側の窓口。invoke と listen。", "Tauri と対。使うのは src/tauri.ts だけ、と決めている。", "src/tauri.ts"),
+  B("view", "lucide", "lucide-react", "1.59", "ISC", "web", "操作ボタンのアイコン。", "角の丸い線画で統一でき、使う絵だけが本番に入る。", "src/editor/Icon.tsx"),
+  B("view", "ts", "typescript", "5.6", "Apache-2.0", "dev", "型。本文の型を ai/schema.json と対応させる。", "要素の種類の取り違えを、書いた時点で見つけられる。", "src/model/deck.ts"),
+  B("view", "vite", "vite", "5.4", "MIT", "dev", "開発サーバー(1420 番)と本番のビルド。", "保存するとすぐ画面に出る。Tauri は devUrl でここを読む。", "vite.config.ts"),
+  B("edit", "moveable", "react-moveable", "0.56", "MIT", "web", "選んだ要素の移動・伸縮・回転・スナップ。", "回転した要素の伸縮や、複数のまとめての変形など、端の場合の多い計算を任せられる。", "src/editor/Editor.tsx"),
+  B("edit", "selecto", "react-selecto", "1.26", "MIT", "web", "クリック・Shift・囲みでの選択。", "Moveable と同じ作者で、組み合わせて使う前提で作られている。", "src/editor/Editor.tsx"),
+  B("edit", "zustand", "zustand", "5.0", "MIT", "web", "状態を 1 つの store にまとめる。", "小さく、React の外(保存のタイマーやテスト)からも getState() で読める。", "src/store.ts"),
+  B("edit", "zundo", "zundo", "2.3", "MIT", "web", "Ctrl+Z の履歴。", "zustand を包むだけで、本文だけを最大 200 歩積める(partialize)。", "src/store.ts"),
+  B("draw", "chartjs", "chart.js", "4.5", "MIT", "web", "画面で動くグラフ(ホバー・切り替え)。", "棒・折れ線・円などの種類が、pptx のネイティブのグラフに写しやすい。", "src/render/elements/ChartEl.tsx"),
+  B("draw", "rc2", "react-chartjs-2", "5.3", "MIT", "web", "Chart.js の React 版。", "部品として置ける。ただし汎用の <Chart> は種類を登録しないので、自分で登録する。", "src/render/elements/ChartEl.tsx"),
+  B("draw", "datalabels", "chartjs-plugin-datalabels", "2.2", "MIT", "web", "グラフに値を書く。", "資料のグラフは、数字が読めることが大事。", "src/render/elements/ChartEl.tsx"),
+  B("draw", "katex", "katex", "0.19", "MIT", "web", "TeX の数式を組む。", "速く、書体も同梱。打つたびに組み直せる。", "src/render/elements/MathEl.tsx"),
+  B("draw", "three", "three.js", "r159", "MIT", "dev", "動く図の 3D(この書庫も)。", "WebGL を素直に使える定番。ウィジェットの HTML に埋め込み、外の CDN に頼らない。", "tools/build-widgets.py(three.js を差し込む)"),
+  B("out", "pptxgenjs", "pptxgenjs", "4.0", "MIT", "web", "pptx を組み立てる。", "ブラウザの中で、文字・図形・表・グラフをネイティブ要素で出せる。書き出すときだけ読み込む。", "src/export/pptx.ts"),
+  B("out", "jszip", "jszip", "3.10", "MIT(または GPL-3.0)", "web", "pptx(中身は zip)を作る。pptxgenjs の中で使う。", "二重ライセンスのうち、MIT を選んで使う。", "pptxgenjs の依存"),
+  B("out", "webaudio", "Web Audio", "", "ブラウザ内蔵", "platform", "ページをめくる音を、その場で合成する。", "録音のファイルが要らず、めくりの長さに合わせて音を伸ばせる。", "src/render/paperSound.ts"),
+  B("out", "print", "window.print", "", "ブラウザ内蔵", "platform", "PDF 書き出し(印刷の「PDF に保存」)。", "画面と同じ文字組み(文節改行も)のまま紙にできる。", "src/editor/ExportActions.tsx"),
+  B("out", "eyedropper", "EyeDropper", "", "ブラウザ内蔵", "platform", "スポイト(画面の色を拾う)。", "Chromium の内蔵。無い環境ではボタンを無効にする。", "src/editor/ColorPicker.tsx"),
+  B("test", "playwright", "playwright", "1.64", "Apache-2.0", "dev", "Edge を動かして、自動のテストと撮影。", "本物のブラウザで、ドラッグや表示崩れまで確かめられる。", "tools/e2e-*.mjs"),
+  B("test", "pptxpy", "python-pptx", "", "MIT", "dev", "書き出した pptx の中身を読む。", "本文と pptx を突き合わせて、写し漏れを見つける。", "tools/check-pptx.py"),
+  B("test", "cargotest", "cargo test", "", "Rust 標準", "dev", "Rust の単体テスト。", "まとめる・展開・一時ファイル・控えの名前を確かめる。", "src-tauri/src/*.rs"),
+  B("test", "cli", "@tauri-apps/cli", "2", "Apache-2.0 / MIT", "dev", "tauri dev と tauri build(インストーラを作る)。", "開発中は Vite と Rust を一緒に動かし、本番は dist/ を EXE に入れる。", "package.json"),
+];
+const DECK = { id: "deck", name: "資料の本文", ver: ".deck", lic: "—", cat: "core", shelf: null,
+  role: "人も、アプリも、AI も読み書きする唯一の正。中身は JSON(資料 → ページ → 要素)。",
+  why: "データを 1 か所に置けば、誰が直しても変更が消えない(要件 R8)。", where: "decks/<名前>/<名前>.deck ・ ai/schema.json" };
+const ALL = [DECK, ...BOOKS];
+
+// ------------------------------------------------------------ 場面
+const canvas = $("gl");
+const renderer = makeRenderer(canvas);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x120A06, 10, 24);
+const camera = new THREE.PerspectiveCamera(52, 1, 0.05, 60);
+scene.add(new THREE.HemisphereLight(0xFFE2B8, 0x2A1A10, 0.75));
+scene.add(new THREE.AmbientLight(0x7A5A3A, 0.55));
+const lamp = new THREE.PointLight(0xFFC27A, 34, 16, 1.4); lamp.position.set(0, 2.6, 0); scene.add(lamp);
+const fill = new THREE.PointLight(0xFFB060, 10, 12, 1.6); fill.position.set(0, 3.6, 0); scene.add(fill);
+
+// 床: 寄木の円と、中央の金の羅針盤
+const floorTex = canvasTexture(1024, 1024, (g, w) => {
+  g.fillStyle = "#2A1A0F"; g.fillRect(0, 0, w, w);
+  const c = w / 2, r = rng(4);
+  for (let ring = 0; ring < 9; ring++) {
+    const r0 = (ring / 9) * c, r1 = ((ring + 1) / 9) * c, n = 8 + ring * 6;
+    for (let k = 0; k < n; k++) {
+      const a0 = (k / n) * Math.PI * 2, a1 = ((k + 1) / n) * Math.PI * 2;
+      const l = 22 + r() * 14 + (ring % 2) * 6;
+      g.fillStyle = `hsl(${24 + r() * 8}, ${38 + r() * 12}%, ${l * 0.55}%)`;
+      g.beginPath(); g.arc(c, c, r1, a0, a1); g.arc(c, c, r0, a1, a0, true); g.closePath(); g.fill();
+      g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 2; g.stroke();
+    }
+  }
+  g.save(); g.translate(c, c); g.strokeStyle = "#C9A227"; g.fillStyle = "rgba(201,162,39,.55)"; g.lineWidth = 3;
+  g.beginPath(); g.arc(0, 0, 170, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(0, 0, 150, 0, Math.PI * 2); g.lineWidth = 1.5; g.stroke();
+  for (let i = 0; i < 8; i++) {
+    const L = i % 2 ? 90 : 150, a = (i / 8) * Math.PI * 2;
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a - 0.12) * 22, Math.sin(a - 0.12) * 22); g.lineTo(Math.cos(a) * L, Math.sin(a) * L); g.closePath(); g.fill();
+  }
+  g.restore();
+});
+const floor = new THREE.Mesh(new THREE.CircleGeometry(9.5, 72), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.85, metalness: 0.05 }));
+floor.rotation.x = -Math.PI / 2; scene.add(floor);
+
+// 本棚(半円に 6 つ並べ、中央を向く。開いた側から見る)。棚の手前(中央の側)が +z
+const RING = 5.2, SPREAD = Math.PI / 6;
+const stoneCol = new THREE.MeshStandardMaterial({ color: 0x4A3C30, roughness: 0.85 });
+const wood = new THREE.MeshStandardMaterial({ color: 0x3B2416, roughness: 0.78, metalness: 0.05 });
+const woodDark = new THREE.MeshStandardMaterial({ color: 0x24150C, roughness: 0.9 });
+const goldMat = new THREE.MeshStandardMaterial({ color: 0xC9A227, roughness: 0.35, metalness: 0.8, emissive: 0x3A2A08 });
+const pickables = [];
+const bookMeshes = new Map();
+const box = (w, h, d, mat, x, y, z, parent) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); parent.add(m); return m; };
+function spineTexture(book) {
+  const [c0, c1] = CAT_COLOR[book.cat] || CAT_COLOR.web;
+  return canvasTexture(128, 512, (g, w, h) => {
+    const grad = g.createLinearGradient(0, 0, w, 0); grad.addColorStop(0, c0); grad.addColorStop(0.5, c1); grad.addColorStop(1, c0);
+    g.fillStyle = grad; g.fillRect(0, 0, w, h);
+    const r = rng(book.id.length * 31 + book.name.length);
+    for (let i = 0; i < 1400; i++) { g.fillStyle = `rgba(0,0,0,${(r() * 0.12).toFixed(3)})`; g.fillRect(r() * w, r() * h, 2, 2); }
+    g.strokeStyle = "#D8B44A"; g.fillStyle = "#D8B44A";
+    for (const y of [26, 38, h - 38, h - 26]) { g.lineWidth = 3; g.beginPath(); g.moveTo(6, y); g.lineTo(w - 6, y); g.stroke(); }
+    for (const y of [54, h - 54]) { g.beginPath(); g.moveTo(w / 2, y - 7); g.lineTo(w / 2 + 7, y); g.lineTo(w / 2, y + 7); g.lineTo(w / 2 - 7, y); g.closePath(); g.fill(); }
+    g.save(); g.translate(w / 2, h / 2); g.rotate(Math.PI / 2);
+    let size = 52; g.font = `700 ${size}px Georgia, "Yu Mincho", serif`;
+    while (g.measureText(book.name).width > h - 150 && size > 22) { size -= 2; g.font = `700 ${size}px Georgia, "Yu Mincho", serif`; }
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#F2D77E"; g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 3;
+    g.fillText(book.name, 0, 2); g.restore();
+  });
+}
+const pagesMat = new THREE.MeshStandardMaterial({ color: 0xE6D6B2, roughness: 0.95 });
+const fillerColors = [0x4A1E14, 0x5A2A1A, 0x22323A, 0x2E2A1A, 0x3A2A1E, 0x1E2A3A, 0x4A3A1A, 0x2A3A2A, 0x5A3020];
+const plateCanvas = (shelf) => canvasTexture(512, 112, (g, w, h) => {
+  g.fillStyle = "#1E120A"; g.fillRect(0, 0, w, h);
+  g.strokeStyle = "#C9A227"; g.lineWidth = 4; g.strokeRect(8, 8, w - 16, h - 16); g.lineWidth = 1.5; g.strokeRect(16, 16, w - 32, h - 32);
+  g.fillStyle = "#F0D98A"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = `700 40px "Yu Mincho", "BIZ UDPMincho", serif`; g.fillText(shelf.name, w / 2, h / 2 - 12);
+  g.font = `400 22px "Yu Mincho", "BIZ UDPMincho", serif`; g.fillStyle = "#CDB98F"; g.fillText(shelf.sub, w / 2, h / 2 + 26);
+});
+SHELVES.forEach((shelf, si) => {
+  const a = -(si - (SHELVES.length - 1) / 2) * SPREAD; // 左から外殻 → 試験
+  const g = new THREE.Group();
+  g.position.set(RING * Math.sin(a), 0, RING * Math.cos(a));
+  g.rotation.y = a + Math.PI;
+  scene.add(g);
+  shelf.angle = a; shelf.group = g;
+  box(2.4, 3.2, 0.06, woodDark, 0, 1.6, -0.25, g);
+  box(0.08, 3.3, 0.52, wood, -1.2, 1.65, 0, g); box(0.08, 3.3, 0.52, wood, 1.2, 1.65, 0, g);
+  box(2.6, 0.14, 0.6, wood, 0, 3.3, 0.02, g); box(2.72, 0.06, 0.66, goldMat, 0, 3.4, 0.03, g);
+  box(2.5, 0.16, 0.56, wood, 0, 0.08, 0, g);
+  box(2.32, 0.34, 0.05, woodDark, 0, 3.03, 0.2, g);
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.285), new THREE.MeshStandardMaterial({ map: plateCanvas(shelf), roughness: 0.6, emissive: 0x2A1A08, emissiveIntensity: 0.6 }));
+  plate.position.set(0, 3.03, 0.228); g.add(plate);
+  const rowsY = [0.16, 1.06, 1.96];
+  for (const y of rowsY.slice(1)) box(2.32, 0.05, 0.48, wood, 0, y - 0.025, 0, g);
+  // 名前のある本は中段(目の高さ)から、入りきらなければ上段へ
+  const named = BOOKS.filter((b) => b.shelf === shelf.id);
+  const r = rng(si * 97 + 13);
+  const rowItems = [[], [], []];
+  named.forEach((b, i) => rowItems[i < 4 ? 1 : 2].push(b));
+  rowItems.forEach((items, ri) => {
+    const y0 = rowsY[ri] + (ri === 0 ? 0 : 0.025);
+    // 名前のある本の位置を先に決め(棚の中ほど)、残りを飾りの本で埋める
+    const widths = items.map((b) => 0.17 + Math.min(0.06, b.name.length * 0.003));
+    const total = widths.reduce((s, w) => s + w + 0.012, 0);
+    let x = -1.12;
+    const startNamed = items.length ? -total / 2 + (r() - 0.5) * 0.3 : 9;
+    let placed = 0;
+    while (x < 1.1) {
+      if (placed < items.length && x >= startNamed - 0.001) {
+        const b = items[placed], w = widths[placed], hgt = 0.74 + r() * 0.06;
+        const mats = [new THREE.MeshStandardMaterial({ color: CAT_COLOR[b.cat][0], roughness: 0.7 }), null, pagesMat, pagesMat, null, pagesMat];
+        mats[1] = mats[0];
+        mats[4] = new THREE.MeshStandardMaterial({ map: spineTexture(b), roughness: 0.55, metalness: 0.08, emissive: 0x000000 });
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, hgt, 0.42), mats);
+        m.position.set(x + w / 2, y0 + hgt / 2, 0.02); g.add(m);
+        m.userData = { book: b, baseZ: 0.02, out: 0, glow: 0 };
+        pickables.push(m); bookMeshes.set(b.id, m);
+        x += w + 0.012; placed++;
+        continue;
+      }
+      if (placed < items.length && x + 0.06 > startNamed) { x = startNamed; continue; }
+      const w = 0.06 + r() * 0.07, hgt = 0.5 + r() * 0.3, d = 0.34 + r() * 0.08;
+      if (x + w > 1.12) break;
+      if (r() < 0.05) { x += 0.05 + r() * 0.08; continue; }
+      const col = fillerColors[Math.floor(r() * fillerColors.length)];
+      const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.8 });
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, hgt, d), [mat, mat, pagesMat, pagesMat, mat, pagesMat]);
+      m.position.set(x + w / 2, y0 + hgt / 2, 0.02 - (0.42 - d) / 2); g.add(m);
+      if (r() < 0.5) { const band = box(w + 0.002, 0.012, 0.004, goldMat, x + w / 2, y0 + hgt * 0.85, m.position.z + d / 2, g); band.position.z += 0.001; }
+      x += w + 0.006;
+    }
+  });
+});
+
+// 棚の間の柱(金の柱頭)
+for (let i = 0; i <= SHELVES.length; i++) {
+  const a = (i - SHELVES.length / 2) * SPREAD;
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 3.6, 16), stoneCol);
+  col.position.set((RING + 0.1) * Math.sin(a), 1.8, (RING + 0.1) * Math.cos(a)); scene.add(col);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.15, 0.18, 16), goldMat); cap.position.set(col.position.x, 3.66, col.position.z); scene.add(cap);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.14, 16), goldMat); base.position.set(col.position.x, 0.07, col.position.z); scene.add(base);
+}
+// 中央の書見台と、光る本(資料の本文)
+const stone = new THREE.MeshStandardMaterial({ color: 0x5A4A3A, roughness: 0.9 });
+const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.5, 0.98, 28), stone); ped.position.y = 0.49; scene.add(ped);
+const desk = new THREE.Group(); desk.position.y = 1.06; scene.add(desk);
+const deskTop = box(1.15, 0.07, 0.8, wood, 0, 0, 0, desk); deskTop.rotation.x = 0.32;
+const pageTex = canvasTexture(256, 340, (g, w, h) => {
+  paperFill(g, w, h, "#FFF3D6", 9);
+  g.fillStyle = "#9E3A22"; g.font = `700 26px "Yu Mincho", serif`; g.fillText("{ }", 20, 44);
+  g.fillStyle = "rgba(60,40,20,.55)";
+  for (let i = 0; i < 11; i++) g.fillRect(22, 70 + i * 22, (i % 4 === 3 ? 120 : 200) * (0.8 + (i % 3) * 0.07), 5);
+});
+const pageMat = new THREE.MeshStandardMaterial({ map: pageTex, emissive: 0xFFD58A, emissiveIntensity: 0.55, side: THREE.DoubleSide, roughness: 0.9 });
+const deckBook = new THREE.Group(); deckBook.position.set(0, 1.12, 0); scene.add(deckBook);
+for (const s of [-1, 1]) {
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.62, 8, 1), pageMat);
+  const pos = p.geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i); pos.setZ(i, Math.sin((x + 0.23) / 0.46 * Math.PI) * 0.03); }
+  p.geometry.computeVertexNormals();
+  p.position.set(s * 0.235, 0.04, 0); p.rotation.set(-Math.PI / 2 + 0.32, s * -0.12, 0);
+  p.userData = { book: DECK }; deckBook.add(p); pickables.push(p);
+}
+const glow = new THREE.PointLight(0xFFE0A0, 5, 3, 1.5); glow.position.set(0, 1.45, 0); scene.add(glow);
+const labelTex = canvasTexture(512, 128, (g, w, h) => {
+  g.textAlign = "center"; g.textBaseline = "middle"; g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 8;
+  g.fillStyle = "#F7DF92"; g.font = `700 46px "Yu Mincho", serif`; g.fillText("資料の本文", w / 2, 46);
+  g.fillStyle = "#E7D2A8"; g.font = `400 30px Georgia, serif`; g.fillText(".deck  ·  JSON", w / 2, 96);
+});
+const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true, depthWrite: false }));
+label.scale.set(1.5, 0.375, 1); label.position.set(0, 1.85, 0); scene.add(label);
+// ろうそく(書見台の両脇)
+const flames = [];
+for (const s of [-1, 1]) {
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.22, 10), new THREE.MeshStandardMaterial({ color: 0xF2E6C8, roughness: 0.6 }));
+  c.position.set(s * 0.5, 1.2, -0.3); scene.add(c);
+  const f = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 10), new THREE.MeshBasicMaterial({ color: 0xFFD27A }));
+  f.scale.set(1, 1.8, 1); f.position.set(s * 0.5, 1.35, -0.3); scene.add(f); flames.push(f);
+}
+// 光の中を漂う塵
+const dustGeo = new THREE.BufferGeometry(), dustN = 320, dustPos = new Float32Array(dustN * 3), dr = rng(21);
+for (let i = 0; i < dustN; i++) { const a = dr() * Math.PI * 2, rr = Math.sqrt(dr()) * 4.8; dustPos.set([Math.cos(a) * rr, dr() * 3.4, Math.sin(a) * rr], i * 3); }
+dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPos, 3));
+const moteTex = canvasTexture(32, 32, (g) => { const r = g.createRadialGradient(16, 16, 0, 16, 16, 16); r.addColorStop(0, "rgba(255,240,200,1)"); r.addColorStop(1, "rgba(255,240,200,0)"); g.fillStyle = r; g.fillRect(0, 0, 32, 32); });
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xFFE2A0, map: moteTex, size: 0.05, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }));
+scene.add(dust);
+
+// ------------------------------------------------------------ 見回す(全体)と、寄る(本の前)
+let theta = Math.PI, pitch = 0, fov = 62, mode = "overview", sel = null, hoverId = null, filter = "all", tour = true, idle = 0;
+const camPos = new THREE.Vector3(), camTgt = new THREE.Vector3(), wantPos = new THREE.Vector3(), wantTgt = new THREE.Vector3();
+function overviewGoal() {
+  wantPos.set(6.6 * Math.sin(theta), 2.75 - pitch * 1.5, 6.6 * Math.cos(theta));
+  wantTgt.set(0, 1.25 + pitch * 0.6, 1.9);
+}
+function focusGoal(id) {
+  if (id === "deck") { wantPos.set(0, 2.15, -1.55); wantTgt.set(0, 1.12, 0.1); return; }
+  const m = bookMeshes.get(id), shelf = SHELVES.find((s) => s.id === m.userData.book.shelf);
+  const p = new THREE.Vector3(); m.getWorldPosition(p);
+  const toCenter = new THREE.Vector3(-Math.sin(shelf.angle), 0, -Math.cos(shelf.angle));
+  wantPos.copy(p).addScaledVector(toCenter, 1.75).add(new THREE.Vector3(0, 0.12, 0));
+  wantTgt.copy(p);
+}
+overviewGoal(); camPos.copy(wantPos); camTgt.copy(wantTgt);
+
+const visibleBooks = () => ALL.filter((b) => filter === "all" || b.cat === filter);
+function select(id, { fly = true } = {}) {
+  sel = id;
+  if (id) {
+    const b = ALL.find((x) => x.id === id);
+    mode = fly ? "focus" : mode;
+    focusGoal(id);
+  }
+  renderCard(); stateChanged();
+}
+function home() { sel = null; mode = "overview"; renderCard(); stateChanged(); }
+function renderCard() {
+  const card = $("card"), list = visibleBooks();
+  document.body.dataset.selected = sel || "";
+  document.body.dataset.mode = mode;
+  document.body.dataset.filter = filter;
+  document.body.dataset.visible = String(list.length);
+  const nav = (pos) => `<div class="nav"><button class="btn" id="prev">◀ 前の本</button><span class="pos">${pos}</span><button class="btn primary" id="next">次の本 ▶</button></div>`;
+  if (!sel) {
+    card.innerHTML = `<div class="ctop"><span>${list.length} 冊(${filter === "all" ? "すべて" : CATS[filter]})</span></div><h2>書庫の地図</h2>
+      <p class="intro">このアプリを作っている道具を、役目ごとの 6 つの棚に並べた。本をクリックすると取り出して、<b class="rubric">役目</b>と<b class="rubric">選んだ理由</b>、コードの<b class="rubric">在りか</b>が読める。</p>
+      <p class="intro sub">中央の書見台で光っているのは、資料の本文(唯一の正)。</p>${nav(`— / ${list.length}`)}`;
+  } else {
+    const b = ALL.find((x) => x.id === sel), shelf = SHELVES.find((s) => s.id === b.shelf);
+    const i = list.findIndex((x) => x.id === sel);
+    card.innerHTML = `<div class="ctop"><span class="badge cat-${b.cat}">${CATS[b.cat]}</span><span>${shelf ? shelf.name : "中央の書見台"}</span></div>
+      <h2>${esc(b.name)}${b.ver ? `<span class="ver">${esc(b.ver)}</span>` : ""}</h2>
+      <div class="lic">ライセンス <b>${esc(b.lic)}</b></div>
+      <dl><dt>役目</dt><dd>${esc(b.role)}</dd><dt>選んだ理由</dt><dd>${esc(b.why)}</dd><dt>在りか</dt><dd><code>${esc(b.where)}</code></dd></dl>${nav(`${i < 0 ? "—" : i + 1} / ${list.length}`)}`;
+  }
+  $("prev").onclick = () => step(-1);
+  $("next").onclick = () => step(1);
+}
+function step(d) {
+  const list = visibleBooks(); if (!list.length) return;
+  const i = list.findIndex((x) => x.id === sel);
+  const n = i < 0 ? (d > 0 ? 0 : list.length - 1) : (i + d + list.length) % list.length;
+  idle = 0; select(list[n].id);
+}
+function stateChanged() { publish({ sel, filter, theta: +theta.toFixed(3), tour }); }
+
+// ------------------------------------------------------------ 操作
+const ray = new THREE.Raycaster();
+const pick = (e) => { ray.setFromCamera(ndc(e, canvas), camera); const hit = ray.intersectObjects(pickables, false)[0]; return hit ? hit.object.userData.book : null; };
+pointerControls(canvas, {
+  down: () => { idle = 0; },
+  drag: (dx, dy) => {
+    if (mode === "focus") { mode = "overview"; sel = null; renderCard(); }
+    theta = clamp(theta - dx * 0.005, Math.PI - 0.75, Math.PI + 0.75); pitch = clamp(pitch + dy * 0.004, -0.5, 0.6); idle = 0;
+  },
+  click: (e) => { const b = pick(e); if (b) select(b.id); else if (mode === "focus") home(); },
+  hover: (e) => {
+    const tip = $("tip");
+    const b = e ? pick(e) : null;
+    hoverId = b ? b.id : null;
+    canvas.style.cursor = b ? "pointer" : "";
+    if (!b) { tip.style.display = "none"; return; }
+    const r = canvas.getBoundingClientRect();
+    tip.style.display = "block"; tip.style.left = `${e.clientX - r.left}px`; tip.style.top = `${e.clientY - r.top}px`;
+    tip.textContent = `${b.name}${b.ver ? " " + b.ver : ""} — ${CATS[b.cat]}`;
+  },
+  wheel: (dy) => { fov = clamp(fov + dy * 0.02, 30, 70); idle = 0; },
+});
+segment($("filter"), (v) => { filter = v; if (sel && !visibleBooks().some((b) => b.id === sel)) home(); else renderCard(); stateChanged(); });
+$("tour").addEventListener("click", () => { tour = !tour; $("tour").setAttribute("aria-pressed", String(tour)); stateChanged(); });
+$("home").addEventListener("click", () => { pitch = 0; fov = 62; theta = Math.PI; home(); });
+window.addEventListener("keydown", (e) => {
+  if (e.target.closest?.("input,textarea")) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); step(1); }
+  else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); step(-1); }
+  else if (e.key === "Home") { e.preventDefault(); home(); }
+});
+onRestore((s) => {
+  if (typeof s.filter === "string" && (s.filter === "all" || CATS[s.filter])) { filter = s.filter; setSeg($("filter"), filter); }
+  if (typeof s.tour === "boolean") { tour = s.tour; $("tour").setAttribute("aria-pressed", String(tour)); }
+  if (Number.isFinite(s.theta)) theta = s.theta;
+  if (s.sel && ALL.some((b) => b.id === s.sel)) select(s.sel); else renderCard();
+});
+
+// ------------------------------------------------------------ 毎フレーム
+const still = reducedMotion();
+let last = performance.now(), clock = 0, tourT = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt; idle += dt;
+  if (mode === "overview") {
+    if (tour && idle > 2.5 && !still) { tourT += dt; theta = lerp(theta, Math.PI + Math.sin(tourT * 0.25) * 0.45, 1 - Math.exp(-dt * 0.8)); }
+    overviewGoal();
+  } else if (sel) focusGoal(sel);
+  const k = still ? 1 : 1 - Math.exp(-dt * 4.5);
+  camPos.lerp(wantPos, k); camTgt.lerp(wantTgt, k);
+  camera.position.copy(camPos); camera.lookAt(camTgt);
+  if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = lerp(camera.fov, fov, k); camera.updateProjectionMatrix(); }
+  for (const m of pickables) {
+    const b = m.userData.book; if (!b || b.id === "deck") continue;
+    const want = b.id === sel ? 0.3 : 0, on = filter === "all" || b.cat === filter;
+    m.userData.out = still ? want : lerp(m.userData.out, want, k);
+    m.position.z = m.userData.baseZ + m.userData.out;
+    const spine = m.material[4];
+    const g = b.id === sel ? 0.55 + 0.15 * Math.sin(clock * 3) : b.id === hoverId ? 0.35 : on && filter !== "all" ? 0.22 : 0;
+    spine.emissive.setRGB(g * 0.8, g * 0.6, g * 0.2);
+    spine.color.setScalar(on ? 1 : 0.28);
+  }
+  const fl = still ? 1 : 0.9 + 0.1 * Math.sin(clock * 7.3) * Math.sin(clock * 3.1 + 1);
+  lamp.intensity = 34 * fl; glow.intensity = (sel === "deck" ? 9 : 5) * fl;
+  flames.forEach((f, i) => f.scale.set(1, 1.7 + 0.25 * Math.sin(clock * 9 + i * 2), 1));
+  if (!still) { dust.rotation.y += dt * 0.02; const p = dustGeo.attributes.position; for (let i = 0; i < dustN; i++) { let y = p.getY(i) + dt * 0.05; if (y > 3.4) y = 0; p.setY(i, y); } p.needsUpdate = true; }
+  label.position.y = 1.85 + (still ? 0 : Math.sin(clock * 1.4) * 0.03);
+  label.material.opacity = lerp(label.material.opacity, sel === "deck" ? 0 : 1, k);
+  pageMat.emissiveIntensity = sel === "deck" ? 0.22 : 0.55;
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+watchSize(canvas, renderer, camera);
+renderCard();
+document.body.dataset.books = String(BOOKS.length);
+window.__lib = { project(id) { const o = id === "deck" ? deckBook : bookMeshes.get(id); const p = new THREE.Vector3(); o.getWorldPosition(p); return toScreen(p, camera, canvas); } };
+requestAnimationFrame(frame);
+ready();
+</script></body></html>

@@ -1,0 +1,231 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>編集の机</title>
+<style>/*INC:_lib.css*/
+:root { --cols: 40; }
+.slide { position: relative; border-radius: .3em; overflow: hidden; box-shadow: 0 .15em .6em rgba(60, 35, 15, .35); flex: none; }
+.slide svg { width: 100%; height: auto; touch-action: none; user-select: none; }
+.el { cursor: move; }
+.el text { pointer-events: none; }
+.knob { fill: #fff; stroke: #2E7BD6; stroke-width: 1.5; }
+.knob.nwse { cursor: nwse-resize; } .knob.nesw { cursor: nesw-resize; }
+.guide { stroke: #D2452A; stroke-width: 1.5; stroke-dasharray: 6 5; }
+.below { display: grid; grid-template-columns: 1fr 1.15fr; gap: .5em; flex: 1; min-height: 0; }
+.panel { padding: 1.35em .5em .4em; overflow: hidden; }
+.hist { list-style: none; margin: 0; padding: 0; font-size: .74em; display: flex; flex-direction: column; gap: .08em; max-height: 100%; overflow: hidden; }
+.hist button { width: 100%; text-align: left; border: 0; background: transparent; padding: .06em .4em; border-radius: .25em; display: flex; gap: .45em; white-space: nowrap; overflow: hidden; }
+.hist button .i { font: 700 .9em var(--mono); color: var(--mute); width: 1.6em; text-align: right; flex: none; }
+.hist button.now { background: var(--walnut); color: var(--gold-l); }
+.hist button.now .i { color: var(--gold); }
+.hist button.future { color: var(--mute); text-decoration: line-through rgba(154, 138, 112, .6); }
+.hist button:hover { outline: 1px solid var(--line); }
+.save .barwrap { height: .45em; background: #E8DCC0; border-radius: 999px; overflow: hidden; margin: .1em 0 .35em; }
+.save #sbar { height: 100%; width: 0; background: var(--gold); }
+.save .st { font-size: .76em; color: var(--sub); display: flex; justify-content: space-between; gap: .5em; }
+.save .st b { color: var(--ink); }
+.save .json { font: .7em/1.5 var(--mono); background: rgba(140, 107, 28, .1); border-radius: .3em; padding: .25em .45em; margin-top: .35em; word-break: break-all; min-height: 3.2em; }
+.save .mode { font-size: .74em; margin-top: .3em; min-height: 1.5em; }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 04 · 編集の机</span><span class="chip">ガイドに 6px 以内で吸い付く · 画像の角は縦横比を保つ</span></header>
+<div class="slide"><svg id="svg" viewBox="0 0 1280 720" aria-label="小さなスライド。要素をドラッグで動かし、角で伸縮する"></svg></div>
+<div class="below">
+  <div class="panel"><span class="ptitle">時の巻物(zundo の履歴)</span><ol class="hist" id="hist"></ol></div>
+  <div class="panel save"><span class="ptitle">自動保存(400ms 待ってから書く)</span>
+    <div class="barwrap"><div id="sbar"></div></div>
+    <div class="st"><span>変更 <b id="nChange">0</b> 回</span><span>書き込み <b id="nSave">0</b> 回</span><span id="sstate">保存済み</span></div>
+    <div class="json" id="json"></div>
+    <div class="mode" id="mode"></div>
+  </div>
+</div>
+<div class="controls">
+  <button class="btn" id="undo" title="Ctrl+Z">↶ 元に戻す</button>
+  <button class="btn" id="redo" title="Ctrl+Y / Ctrl+Shift+Z">↷ やり直す</button>
+  <button class="btn" id="snap" aria-pressed="true">スナップ</button>
+  <button class="btn" id="reset">最初から</button>
+  <span class="sub" style="font-size:.72em;margin-left:auto">Shift で縦横比 · 矢印で 1px</span>
+</div>
+</div>
+<script>"use strict";
+/*INC:_lib.js*/
+const NS = "http://www.w3.org/2000/svg";
+const svg = $("svg");
+const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent?.appendChild(e); return e; };
+const W = 1280, H = 720;
+const START = [
+  { id: "title", type: "text", label: "見出し", x: 60, y: 43, w: 1160, h: 86 },
+  { id: "img", type: "image", label: "画像", x: 96, y: 196, w: 400, h: 300 },
+  { id: "cardA", type: "shape", label: "カード A", x: 560, y: 190, w: 300, h: 180 },
+  { id: "cardB", type: "shape", label: "カード B", x: 905, y: 236, w: 300, h: 180 },
+  { id: "seal", type: "ellipse", label: "印", x: 640, y: 470, w: 150, h: 150 },
+];
+const clone = (els) => els.map((e) => ({ ...e }));
+// 本文(deck)と、zundo のような履歴(過去 → 今 → 未来)
+let els = clone(START), past = [], future = [], hist = [{ label: "開いたときの本文", els: clone(START) }], at = 0;
+let sel = "cardA", snapOn = true, guides = [], preview = null, changes = 0, saves = 0, timer = null, tStart = 0;
+const SAVE_MS = 400, LIMIT = 200;
+
+// ------------------------------------------------------------ 描く
+const bg = mk("rect", { x: 0, y: 0, width: W, height: H, fill: "#F6EEDB" }, svg);
+mk("rect", { x: 14, y: 14, width: W - 28, height: H - 28, fill: "none", stroke: "#B89656", "stroke-width": 2, opacity: .6 }, svg);
+const layer = mk("g", {}, svg), guideLayer = mk("g", {}, svg), uiLayer = mk("g", {}, svg);
+const scale = () => svg.getBoundingClientRect().width / W || 1; // 表示されていない(幅 0)ときは 1
+function picture(g, e) {
+  // 画像: アーチの奥の本棚(fill: 枠いっぱいに引き伸ばす)
+  const s = mk("svg", { x: e.x, y: e.y, width: e.w, height: e.h, viewBox: "0 0 400 300", preserveAspectRatio: "none" }, g);
+  mk("rect", { width: 400, height: 300, fill: "#2A180D" }, s);
+  mk("path", { d: "M60 300 V130 A140 110 0 0 1 340 130 V300 Z", fill: "#3E2414", stroke: "#C9A227", "stroke-width": 4 }, s);
+  for (let i = 0; i < 14; i++) mk("rect", { x: 80 + i * 17, y: 150 + (i % 3) * 6, width: 13, height: 60 - (i % 3) * 6, fill: ["#7A2A18", "#2A3D66", "#2C5A55", "#8A6A2A"][i % 4] }, s);
+  for (let i = 0; i < 14; i++) mk("rect", { x: 80 + i * 17, y: 222 + (i % 2) * 8, width: 13, height: 58 - (i % 2) * 8, fill: ["#2C5A55", "#8A6A2A", "#7A2A18", "#2A3D66"][i % 4] }, s);
+  mk("ellipse", { cx: 200, cy: 120, rx: 34, ry: 34, fill: "#F0D98A", opacity: .85 }, s);
+}
+function draw() {
+  layer.replaceChildren(); uiLayer.replaceChildren(); guideLayer.replaceChildren();
+  const show = preview ? els.map((e) => (e.id === preview.id ? { ...e, ...preview.box } : e)) : els;
+  for (const e of show) {
+    const g = mk("g", { class: "el", "data-id": e.id }, layer);
+    if (e.type === "text") {
+      mk("rect", { x: e.x, y: e.y, width: e.w, height: e.h, fill: "transparent" }, g);
+      const t = mk("text", { x: e.x, y: e.y + e.h - 22, "font-size": 50, "font-weight": 700, fill: "#4A2A17", "font-family": "Yu Mincho, serif" }, g); t.textContent = "編集の机 — ドラッグしてみよう";
+      mk("line", { x1: e.x, y1: e.y + e.h + 6, x2: e.x + e.w, y2: e.y + e.h + 6, stroke: "#C9A227", "stroke-width": 3 }, g);
+    } else if (e.type === "image") picture(g, e);
+    else if (e.type === "shape") {
+      mk("rect", { x: e.x, y: e.y, width: e.w, height: e.h, rx: 14, fill: "#EADBB9", stroke: "#B89656", "stroke-width": 2.5 }, g);
+      const t = mk("text", { x: e.x + e.w / 2, y: e.y + e.h / 2, "font-size": 36, "font-weight": 700, fill: "#9E3A22", "text-anchor": "middle", "dominant-baseline": "central" }, g); t.textContent = e.label;
+    } else {
+      mk("ellipse", { cx: e.x + e.w / 2, cy: e.y + e.h / 2, rx: e.w / 2, ry: e.h / 2, fill: "#8A2A18", stroke: "#C9A227", "stroke-width": 4 }, g);
+      const t = mk("text", { x: e.x + e.w / 2, y: e.y + e.h / 2 + 2, "font-size": Math.min(e.w, e.h) * 0.45, "font-weight": 700, fill: "#F0D98A", "text-anchor": "middle", "dominant-baseline": "central", "font-family": "Georgia, serif" }, g); t.textContent = "L";
+    }
+  }
+  for (const gd of guides) mk("line", gd.axis === "x" ? { x1: gd.v, y1: 0, x2: gd.v, y2: H, class: "guide" } : { x1: 0, y1: gd.v, x2: W, y2: gd.v, class: "guide" }, guideLayer);
+  const s = show.find((e) => e.id === sel);
+  if (s) {
+    const k = 1 / scale();
+    mk("rect", { x: s.x, y: s.y, width: s.w, height: s.h, fill: "none", stroke: "#2E7BD6", "stroke-width": 2 * k }, uiLayer);
+    for (const [cx, cy, c] of [[0, 0, "nw"], [1, 0, "ne"], [0, 1, "sw"], [1, 1, "se"]]) {
+      const r = 6 * k;
+      mk("rect", { x: s.x + cx * s.w - r, y: s.y + cy * s.h - r, width: 2 * r, height: 2 * r, class: `knob ${c === "nw" || c === "se" ? "nwse" : "nesw"}`, "data-corner": c, "stroke-width": 1.5 * k }, uiLayer);
+    }
+  }
+  renderSide();
+}
+function renderSide() {
+  const list = $("hist");
+  const rows = hist.map((h, i) => `<li><button data-i="${i}" class="${i === at ? "now" : i > at ? "future" : ""}"><span class="i">${i}</span>${esc(h.label)}</button></li>`);
+  list.innerHTML = rows.slice(Math.max(0, at - 4), Math.max(0, at - 4) + 7).join("");
+  list.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => jump(+b.dataset.i)));
+  const s = (preview && preview.id === sel ? { ...els.find((e) => e.id === sel), ...preview.box } : els.find((e) => e.id === sel));
+  $("json").textContent = s ? JSON.stringify({ id: s.id, type: s.type, x: Math.round(s.x), y: Math.round(s.y), w: Math.round(s.w), h: Math.round(s.h) }) : "(何も選んでいない)";
+  $("nChange").textContent = changes; $("nSave").textContent = saves;
+  $("sstate").textContent = timer ? "待っている…" : "保存済み";
+  $("undo").disabled = at === 0; $("redo").disabled = at >= hist.length - 1;
+  Object.assign(document.body.dataset, { history: hist.length, index: at, saves, changes, sel: sel || "", snapped: guides.map((g) => g.axis + Math.round(g.v)).join(",") });
+}
+function mode(s) { $("mode").innerHTML = s; }
+
+// ------------------------------------------------------------ 本文を変える(履歴に積み、保存を予約する)
+function commit(label, next) {
+  els = next;
+  hist = hist.slice(0, at + 1); hist.push({ label, els: clone(els) }); if (hist.length > LIMIT + 1) hist.shift(); at = hist.length - 1;
+  changed();
+}
+function changed() {
+  changes++;
+  if (timer) clearTimeout(timer);
+  tStart = performance.now(); timer = setTimeout(() => { timer = null; saves++; renderSide(); mode(`<b class="verd">write_deck</b> で 1 回だけ書いた(${saves} 回目)`); }, SAVE_MS);
+  draw(); publish({ els });
+}
+function jump(i) {
+  if (i < 0 || i >= hist.length || i === at) return;
+  at = i; els = clone(hist[i].els);
+  if (!els.some((e) => e.id === sel)) sel = null;
+  mode(`Ctrl+Z / やり直し: 本文だけが ${i} 番の状態に戻る。<b class="rubric">これも保存される</b>`);
+  changed();
+}
+(function tick() { const f = timer ? Math.min(1, (performance.now() - tStart) / SAVE_MS) : 0; $("sbar").style.width = `${f * 100}%`; requestAnimationFrame(tick); })();
+
+// ------------------------------------------------------------ スナップ: 動かしている要素の左・中・右(上・中・下)を、ほかの要素と紙の線に寄せる
+function snapMove(box, id) {
+  guides = [];
+  if (!snapOn) return box;
+  const T = 6 / scale(); // 画面で 6px
+  const others = els.filter((e) => e.id !== id);
+  const xs = [0, W / 2, W, ...others.flatMap((e) => [e.x, e.x + e.w / 2, e.x + e.w])];
+  const ys = [0, H / 2, H, ...others.flatMap((e) => [e.y, e.y + e.h / 2, e.y + e.h])];
+  const best = (mine, lines) => { let b = null; for (const m of mine) for (const l of lines) { const d = l - m; if (Math.abs(d) <= T && (!b || Math.abs(d) < Math.abs(b.d))) b = { d, v: l }; } return b; };
+  const bx = best([box.x, box.x + box.w / 2, box.x + box.w], xs), by = best([box.y, box.y + box.h / 2, box.y + box.h], ys);
+  const out = { ...box };
+  if (bx) { out.x += bx.d; guides.push({ axis: "x", v: bx.v }); }
+  if (by) { out.y += by.d; guides.push({ axis: "y", v: by.v }); }
+  return out;
+}
+
+// ------------------------------------------------------------ ドラッグと伸縮
+function toLogical(e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+let drag = null;
+svg.addEventListener("pointerdown", (e) => {
+  const corner = e.target.closest?.(".knob")?.dataset.corner;
+  const id = corner ? sel : e.target.closest?.(".el")?.dataset.id;
+  if (!id) { sel = null; guides = []; draw(); return; }
+  e.preventDefault(); svg.setPointerCapture(e.pointerId);
+  sel = id; const el0 = els.find((x) => x.id === id);
+  drag = { id, corner, start: toLogical(e), box0: { x: el0.x, y: el0.y, w: el0.w, h: el0.h }, type: el0.type, moved: false };
+  draw();
+});
+svg.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = toLogical(e), dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+  if (!drag.moved && Math.hypot(dx, dy) * scale() < 2) return;
+  drag.moved = true;
+  const b0 = drag.box0;
+  let box;
+  if (!drag.corner) box = snapMove({ ...b0, x: b0.x + dx, y: b0.y + dy }, drag.id);
+  else {
+    // 反対の角を止めて伸ばす。画像は縦横比を保つ(Shift で外す)、ほかは Shift で保つ — PowerPoint と同じ
+    const keep = (drag.type === "image") !== e.shiftKey;
+    const sx = drag.corner.includes("w") ? -1 : 1, sy = drag.corner.includes("n") ? -1 : 1;
+    let w = Math.max(40, b0.w + sx * dx), h = Math.max(30, b0.h + sy * dy);
+    if (keep) { const r = b0.w / b0.h; if (w / h > r) h = w / r; else w = h * r; }
+    box = { x: sx < 0 ? b0.x + b0.w - w : b0.x, y: sy < 0 ? b0.y + b0.h - h : b0.y, w, h };
+    guides = [];
+    mode(keep ? "縦横比を保って伸縮中(<b>Shift</b> で外す/付ける)" : "自由に伸縮中(<b>Shift</b> で縦横比を保つ)");
+  }
+  preview = { id: drag.id, box };
+  if (!drag.corner) mode("ドラッグ中: 見た目だけ動かし、<b class=\"rubric\">本文はまだ変えない</b>");
+  draw();
+});
+const endDrag = () => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.moved && preview) {
+    const b = preview.box, r = { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.w), h: Math.round(b.h) };
+    preview = null; guides = [];
+    const label = d.corner ? `伸縮 ${d.id} ${r.w}×${r.h}` : `移動 ${d.id} (${r.x}, ${r.y})`;
+    commit(label, els.map((e) => (e.id === d.id ? { ...e, ...r } : e)));
+    mode("離した: 本文を 1 回だけ変えた → 履歴に 1 歩、保存の待ちが始まる");
+  } else { preview = null; guides = []; draw(); }
+};
+svg.addEventListener("pointerup", endDrag); svg.addEventListener("pointercancel", endDrag);
+window.addEventListener("keydown", (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && (e.key === "z" || e.key === "Z")) { e.preventDefault(); e.shiftKey ? jump(at + 1) : jump(at - 1); return; }
+  if (mod && (e.key === "y" || e.key === "Y")) { e.preventDefault(); jump(at + 1); return; }
+  const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+  if (dir && sel) {
+    e.preventDefault(); const n = e.shiftKey ? 10 : 1;
+    const s = els.find((x) => x.id === sel);
+    commit(`微調整 ${sel} (${s.x + dir[0] * n}, ${s.y + dir[1] * n})`, els.map((x) => (x.id === sel ? { ...x, x: x.x + dir[0] * n, y: x.y + dir[1] * n } : x)));
+  }
+});
+$("undo").addEventListener("click", () => jump(at - 1));
+$("redo").addEventListener("click", () => jump(at + 1));
+$("snap").addEventListener("click", () => { snapOn = !snapOn; $("snap").setAttribute("aria-pressed", String(snapOn)); });
+$("reset").addEventListener("click", () => { els = clone(START); hist = [{ label: "開いたときの本文", els: clone(START) }]; at = 0; sel = "cardA"; changes = 0; saves = 0; if (timer) clearTimeout(timer); timer = null; guides = []; mode(""); draw(); publish({ els }); });
+onRestore((s) => {
+  if (!Array.isArray(s.els) || s.els.length !== START.length) return;
+  const ok = s.els.every((e, i) => e && e.id === START[i].id && ["x", "y", "w", "h"].every((k) => Number.isFinite(e[k])));
+  if (!ok) return;
+  els = START.map((e, i) => ({ ...e, x: s.els[i].x, y: s.els[i].y, w: clamp(s.els[i].w, 40, W), h: clamp(s.els[i].h, 30, H) }));
+  hist = [{ label: "前に開いたときの本文", els: clone(els) }]; at = 0; draw();
+});
+new ResizeObserver(() => draw()).observe(svg);
+mode("カード B をカード A の高さにそろえてみよう(上の辺で吸い付く)");
+draw(); ready();
+</script></body></html>

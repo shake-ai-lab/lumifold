@@ -112,7 +112,8 @@ src/                 React フロント(画面)
 src-tauri/           Rust(ファイル読み書き、監視、起動引数)。画面の都合は知らない。lib.rs(読み書き・画像・控え)、package.rs(1 ファイルにまとめる・展開)、watch.rs(監視)
 ai/schema.json       deck.json の JSON Schema(AI 生成と検証で共有)
 decks/<name>/<name>.deck  デッキ(中身は JSON。既存のデッキは旧名 deck.json のまま)。画像は同じフォルダの assets/ に置き相対パスで参照
-                     見本は neural-network(15 枚)と sd-lora(5 枚)、ノートの教材 electrical-drawings(42 ページ)
+                     見本は neural-network(15 枚)と sd-lora(5 枚)、ノートの教材 electrical-drawings(42 ページ)、
+                     このアプリ自身の技術解説ノート lumifold-codex(60 ページ。版・依存の数・コマンド名を本文に書いているので、変えたら作り直す)
 tools/fixtures/      テスト用の資料: demo(ほとんどのテストの土台)・note-demo・coffee-extraction(数式とウィジェット)・authoring-review・_e2e(本物のアプリ用)。
                      external/ と consistency/ はテストが毎回作り直す。tools/e2e-export と ui-audit は名前を fixtures → decks の順に探す
   editor/            Editor.tsx(Moveable + Selecto)、useEditorKeys.ts(キー操作・貼り付け)、elementMenu.tsx(要素の右クリック)、
@@ -153,6 +154,9 @@ tools/create-sd-lora-assets.py / create-sd-lora-deck.py / e2e-sd-lora-widgets.mj
 tools/electrical-figures.js / create-electrical-assets.mjs / create-electrical-deck.py / e2e-electrical-widgets.mjs  decks/electrical-drawings(ノート教材「はじめての電気図面」)の図版・本文の生成と、
                      ウィジェット 5 つ(flashlight / nets / symbols / led / sequence)の単体テスト。--reader を付けると vite dev 起動中に読む画面でも操作を確かめる
                      (iframe はページの拡大縮小の中にあるので、押す位置は拡大率を掛けて計算する。frameLocator の位置は親の transform を考えない)。共通は widgets/_ed.js・_ed.css・_sym.js
+tools/codex-art.js / create-codex-assets.mjs / create-codex-deck.py / e2e-codex-widgets.mjs  decks/lumifold-codex(技術解説ノート「Lumifold の書庫」。羊皮紙と革の古い書庫の見た目)の
+                     絵(SVG → PNG / JPEG)・本文の生成と、さわれる図 6 つ(library3d / anatomy3d は three.js、courier / desk / fold / sound)の単体テスト(--reader も)。
+                     fold は src/render/pageTurn.ts、sound は src/render/paperSound.ts の計算を写している。共通は widgets/_lib.css・_lib.js・_lib3d.js
 ```
 
 ## コマンド

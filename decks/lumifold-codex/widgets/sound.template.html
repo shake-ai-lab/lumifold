@@ -1,0 +1,198 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>紙の音を作る</title>
+<style>/*INC:_lib.css*/
+:root { --cols: 40; }
+.chain svg { width: 100%; height: auto; }
+.chain .nd rect { fill: #FFFBF0; stroke: var(--line); stroke-width: 1.4; transition: fill .15s, stroke .15s; }
+.chain .nd.on rect { fill: #FFF0C4; stroke: var(--gold-d); stroke-width: 2.4; }
+.chain .nd .t { font-size: 12.5px; font-weight: 700; fill: var(--ink); }
+.chain .nd .s { font-size: 10px; fill: var(--sub); font-family: var(--mono); }
+.chain .wire { stroke: #B89656; stroke-width: 2; fill: none; marker-end: url(#ah); }
+.plot { flex: 1; min-height: 0; position: relative; }
+.plot canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.legend { position: absolute; right: .6em; top: .35em; font-size: .7em; display: flex; gap: .8em; color: var(--sub); }
+.legend i { display: inline-block; width: 1.4em; height: .45em; border-radius: 2px; margin-right: .3em; vertical-align: .1em; }
+.code { font: .68em/1.5 var(--mono); background: #FFFBF0; border: 1.5px solid var(--line); border-radius: .35em; padding: .3em .6em; color: var(--verd); white-space: pre; overflow: hidden; min-height: 3.3em; }
+.row { display: flex; flex-wrap: wrap; gap: .45em; align-items: center; }
+.ctl { display: grid; grid-template-columns: auto 1fr auto auto 1fr auto; gap: .2em .6em; align-items: center; font-size: .82em; color: var(--sub); }
+.ctl input[type=range] { width: 100%; }
+.ctl output { min-width: 4.2em; text-align: right; }
+#warn { color: var(--rubric); font-size: .78em; }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 06 · 紙の音を作る</span><span class="chip">音が出ます · Web Audio</span></header>
+<div class="chain"><svg id="chain" viewBox="0 0 600 70" aria-label="音の部品のつながり"></svg></div>
+<div class="panel plot"><span class="ptitle" id="ptitle">最後に鳴らした音</span><div class="legend"><span><i style="background:rgba(201,162,39,.6)"></i>音量(GainNode)</span><span><i style="background:#9E3A22"></i>フィルタの周波数</span></div><canvas id="cv"></canvas></div>
+<div class="code" id="code"></div>
+<div class="row">
+  <button class="btn" id="lift">カサッ(つまむ)</button>
+  <button class="btn" id="swish">ふぁさっ(めくる)</button>
+  <button class="btn" id="land">ぱさっ(着地)</button>
+  <button class="btn primary" id="whole">通しで 1 枚</button>
+  <button class="btn" id="vary" aria-pressed="true">ゆらぎ</button>
+  <span id="warn"></span>
+</div>
+<div class="ctl">
+  <span>めくりの長さ</span><input type="range" id="ms" min="200" max="1500" step="10" value="720" aria-label="めくりの長さ(ミリ秒)"><output id="msv"></output>
+  <span>帯域の山</span><input type="range" id="peak" min="1500" max="6000" step="50" value="3600" aria-label="帯域の山の周波数"><output id="peakv"></output>
+</div>
+</div>
+<script>"use strict";
+/*INC:_lib.js*/
+// ------------------------------------------------------------ 部品のつながり(src/render/paperSound.ts と同じ)
+const NS = "http://www.w3.org/2000/svg", chain = $("chain");
+chain.innerHTML = `<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#B89656"/></marker></defs>`;
+const NODES = [["noise", "ノイズ 2 秒", "AudioBuffer"], ["filter", "フィルタ", "BiquadFilter"], ["gain", "音量の山", "GainNode"], ["soft", "やわらげ", "lowpass 9 kHz"], ["out", "スピーカー", "destination"]];
+NODES.forEach(([id, t, s], i) => {
+  const x = 4 + i * 120, g = document.createElementNS(NS, "g"); g.setAttribute("class", "nd"); g.id = `nd-${id}`;
+  g.innerHTML = `<rect x="${x}" y="8" width="100" height="54" rx="7"/><text class="t" x="${x + 50}" y="28" text-anchor="middle">${t}</text><text class="s" x="${x + 50}" y="47" text-anchor="middle" id="nds-${id}">${s}</text>`;
+  chain.appendChild(g);
+  if (i) { const l = document.createElementNS(NS, "line"); l.setAttribute("class", "wire"); l.setAttribute("x1", x - 18); l.setAttribute("y1", 35); l.setAttribute("x2", x - 2); l.setAttribute("y2", 35); chain.appendChild(l); }
+});
+const light = (ids, ms) => { for (const [id] of NODES) $(`nd-${id}`).classList.toggle("on", ids.includes(id)); clearTimeout(light.t); light.t = setTimeout(() => NODES.forEach(([id]) => $(`nd-${id}`).classList.remove("on")), ms); };
+
+// ------------------------------------------------------------ 音(録音を使わず、ノイズを削って作る)
+let ctx = null, out = null, analyser = null, noiseBuf = null, played = 0, varyOn = true;
+function context() {
+  try {
+    if (!ctx) {
+      const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+      ctx = new C();
+      const soften = ctx.createBiquadFilter(); soften.type = "lowpass"; soften.frequency.value = 9000;
+      out = ctx.createGain(); out.gain.value = 1.1;
+      analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
+      out.connect(soften).connect(analyser).connect(ctx.destination);
+    }
+    if (ctx.state === "suspended") void ctx.resume();
+    return ctx;
+  } catch { return null; }
+}
+function noise(a) {
+  if (noiseBuf && noiseBuf.sampleRate === a.sampleRate) return noiseBuf;
+  const len = Math.floor(a.sampleRate * 2), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+  let last = 0; for (let i = 0; i < len; i++) { last = last * 0.3 + (Math.random() * 2 - 1) * 0.7; d[i] = last; }
+  return (noiseBuf = b);
+}
+const vary = (v, amount = 0.15) => (varyOn ? v * (1 + (Math.random() * 2 - 1) * amount) : v);
+// 鳴らす予定を記録して、グラフに描く(t は鳴らし始めからの秒)
+let plan = [];
+function burst(a, at, dur, b, t0) {
+  plan.push({ kind: b.type, at: at - t0, dur, gain: [[0, 0.0001], [Math.min(b.attack, dur * 0.9), b.gain], [dur, 0.0001]], freq: [[0, b.freq]] });
+  if (!a) return;
+  const src = a.createBufferSource(); src.buffer = noise(a);
+  const f = a.createBiquadFilter(); f.type = b.type; f.Q.value = b.q; f.frequency.setValueAtTime(b.freq, at);
+  const g = a.createGain(); g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(b.gain, at + Math.min(b.attack, dur * 0.9)); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  src.connect(f).connect(g).connect(out); src.start(at, Math.random() * 1.6, dur + 0.05); played++;
+}
+function lift(a, t, t0) { for (let i = 0; i < 3; i++) burst(a, t + i * vary(0.016, 0.5), vary(0.02), { type: "highpass", freq: vary(3400), q: 0.7, gain: vary(0.045, 0.4), attack: 0.003 }, t0); }
+function swish(a, t, t0, ms) {
+  const dur = Math.max(0.16, (ms / 1000) * 0.92), peakHz = +$("peak").value, peak = vary(0.22, 0.2);
+  const f0 = vary(1100), f1 = vary(peakHz), f2 = vary(1500);
+  plan.push({ kind: "bandpass", at: t - t0, dur, gain: [[0, 0.0001], [dur * 0.12, peak * 0.35], [dur * 0.42, peak], [dur * 0.8, peak * 0.25], [dur, 0.0001]], freq: [[0, f0], [dur * 0.4, f1], [dur, f2]] });
+  if (a) {
+    const src = a.createBufferSource(); src.buffer = noise(a);
+    const band = a.createBiquadFilter(); band.type = "bandpass"; band.Q.value = vary(0.9, 0.3);
+    band.frequency.setValueAtTime(f0, t); band.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.4); band.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak * 0.35, t + dur * 0.12); g.gain.exponentialRampToValueAtTime(peak, t + dur * 0.42);
+    g.gain.exponentialRampToValueAtTime(peak * 0.25, t + dur * 0.8); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(band).connect(g).connect(out); src.start(t, Math.random() * 1.2, dur + 0.05); played++;
+  }
+  return dur;
+}
+function land(a, t, t0) {
+  burst(a, t, vary(0.09), { type: "lowpass", freq: vary(700), q: 0.6, gain: vary(0.16, 0.25), attack: 0.004 }, t0);
+  burst(a, t + 0.004, vary(0.05), { type: "bandpass", freq: vary(2200), q: 1.2, gain: vary(0.06, 0.3), attack: 0.003 }, t0);
+}
+const CODE = {
+  lift: `// つまむ: 高い音の短い粒を 3 つ(highpass 3400 Hz、20ms)\nfor (let i = 0; i < 3; i++) burst(a, t + i * vary(0.016, 0.5), vary(0.02), { type: "highpass", freq: vary(3400), … });`,
+  swish: `// めくる: 帯域を上げてから下げる。音量の山は前半(42% の所)\nband.frequency.exponentialRampToValueAtTime(vary(3600), t + dur * 0.4);\ngain.gain.exponentialRampToValueAtTime(peak, t + dur * 0.42);`,
+  land: `// 着地: 低めの短いノイズ(lowpass 700 Hz)と、少し高い粒を重ねる\nburst(a, land, vary(0.09), { type: "lowpass", freq: vary(700), q: 0.6, gain: vary(0.16, 0.25), … });`,
+  whole: `// playPageTurn(ms): つまむ → めくる(長さ = ms × 0.92)→ めくりの 86% の所で着地\nconst dur = Math.max(0.16, (ms / 1000) * 0.92), land = t + dur * 0.86;`,
+};
+function play(kind) {
+  const a = context();
+  $("warn").textContent = a ? "" : "この環境では音を鳴らせない(グラフだけ描く)";
+  plan = [];
+  const t0 = a ? a.currentTime + 0.01 : 0, ms = +$("ms").value;
+  let ids = ["noise", "filter", "gain", "soft", "out"], total = 0.2, filt = "";
+  if (kind === "lift") { lift(a, t0, t0); total = 0.12; filt = "highpass 3.4k"; }
+  else if (kind === "swish") { total = swish(a, t0, t0, ms) + 0.05; filt = "bandpass ↗↘"; }
+  else if (kind === "land") { land(a, t0, t0); total = 0.14; filt = "lowpass 700"; }
+  else { lift(a, t0, t0); const dur = swish(a, t0, t0, ms); land(a, t0 + dur * 0.86, t0); total = dur + 0.12; filt = "3 種を重ねる"; }
+  $("nds-filter").textContent = filt;
+  light(ids, total * 1000 + 150);
+  $("code").textContent = CODE[kind];
+  $("ptitle").textContent = { lift: "カサッ(つまむ)", swish: "ふぁさっ(めくる)", land: "ぱさっ(着地)", whole: "通しで 1 枚" }[kind] + ` · ${Math.round(total * 1000)} ms`;
+  drawPlan(total); scope(total);
+  Object.assign(document.body.dataset, { played, sound: kind, ctx: a ? a.state : "none" });
+}
+
+// ------------------------------------------------------------ グラフ: 音量(線形)と、フィルタの周波数(対数)
+const cv = $("cv");
+let lastTotal = 0.9, live = null;
+function expAt(pts, x) {
+  if (x <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, v0] = pts[i - 1], [x1, v1] = pts[i];
+    if (x <= x1) return v0 * Math.pow(v1 / v0, (x - x0) / (x1 - x0));
+  }
+  return pts[pts.length - 1][1];
+}
+function drawPlan(total = lastTotal) {
+  lastTotal = total;
+  const dpr = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  const L = 44, R = 46, T = 42, B = 22, pw = W - L - R, ph = H - T - B;
+  const X = (t) => L + (t / total) * pw, Yg = (v) => T + ph - (v / 0.26) * ph, Yf = (f) => T + ph - (Math.log(f / 300) / Math.log(8000 / 300)) * ph;
+  g.font = `10px "BIZ UDPMincho", serif`; g.fillStyle = "#6B5A45"; g.strokeStyle = "#E3D3AE"; g.lineWidth = 1;
+  for (const f of [500, 1000, 2000, 4000, 8000]) { g.beginPath(); g.moveTo(L, Yf(f)); g.lineTo(L + pw, Yf(f)); g.stroke(); g.textAlign = "left"; g.fillText(f >= 1000 ? `${f / 1000}k` : String(f), L + pw + 6, Yf(f) + 3); }
+  g.textAlign = "right"; for (const v of [0, 0.1, 0.2]) g.fillText(v.toFixed(1), L - 6, Yg(v) + 3);
+  g.textAlign = "center"; const step = total > 0.6 ? 0.2 : total > 0.25 ? 0.05 : 0.02;
+  for (let t = 0; t <= total + 1e-9; t += step) g.fillText(`${Math.round(t * 1000)}`, X(t), H - 6);
+  g.textAlign = "left"; g.fillText("ms", L + pw + 6, H - 6); g.fillText("Hz", L + pw + 6, T - 8); g.textAlign = "right"; g.fillText("音量", L - 6, T - 8);
+  if (!plan.length) { g.textAlign = "center"; g.fillStyle = "#9A8A70"; g.font = `13px "BIZ UDPMincho", serif`; g.fillText("ボタンを押すと、鳴らした音の中身がここに描かれる", L + pw / 2, T + ph / 2); return; }
+  for (const p of plan) {
+    g.beginPath(); g.moveTo(X(p.at), Yg(0));
+    for (let i = 0; i <= 60; i++) { const x = (i / 60) * p.dur; g.lineTo(X(p.at + x), Yg(expAt(p.gain, x))); }
+    g.lineTo(X(p.at + p.dur), Yg(0)); g.closePath();
+    g.fillStyle = p.kind === "bandpass" && p.freq.length > 1 ? "rgba(201,162,39,.5)" : p.kind === "highpass" ? "rgba(52,80,138,.45)" : "rgba(47,110,106,.5)"; g.fill();
+  }
+  g.strokeStyle = "#9E3A22"; g.lineWidth = 2;
+  for (const p of plan) {
+    g.beginPath();
+    for (let i = 0; i <= 60; i++) { const x = (i / 60) * p.dur, y = Yf(expAt(p.freq, x)); i ? g.lineTo(X(p.at + x), y) : g.moveTo(X(p.at + x), y); }
+    g.stroke();
+  }
+}
+// 鳴っている間の波形(AnalyserNode)を、グラフの上に薄く重ねる
+function scope(total) {
+  if (!analyser || reducedMotion()) return;
+  const buf = new Float32Array(analyser.fftSize), end = performance.now() + total * 1000 + 200;
+  cancelAnimationFrame(live);
+  const step = () => {
+    drawPlan(); analyser.getFloatTimeDomainData(buf);
+    const g = cv.getContext("2d"), W = cv.clientWidth, H = cv.clientHeight;
+    g.strokeStyle = "rgba(43,33,24,.55)"; g.lineWidth = 1; g.beginPath();
+    for (let i = 0; i < buf.length; i++) { const x = 44 + (i / buf.length) * (W - 90), y = H / 2 - buf[i] * H * 1.6; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.stroke();
+    if (performance.now() < end) live = requestAnimationFrame(step); else drawPlan();
+  };
+  live = requestAnimationFrame(step);
+}
+
+// ------------------------------------------------------------ 操作
+for (const k of ["lift", "swish", "land", "whole"]) $(k).addEventListener("click", () => play(k));
+$("vary").addEventListener("click", () => { varyOn = !varyOn; $("vary").setAttribute("aria-pressed", String(varyOn)); publishState(); });
+const showVals = () => { $("msv").textContent = `${$("ms").value} ms`; $("peakv").textContent = `${(+$("peak").value / 1000).toFixed(2)} kHz`; };
+for (const id of ["ms", "peak"]) $(id).addEventListener("input", () => { showVals(); publishState(); });
+function publishState() { publish({ ms: +$("ms").value, peak: +$("peak").value, vary: varyOn }); }
+onRestore((s) => {
+  if (Number.isFinite(s.ms)) $("ms").value = clamp(s.ms, 200, 1500);
+  if (Number.isFinite(s.peak)) $("peak").value = clamp(s.peak, 1500, 6000);
+  if (typeof s.vary === "boolean") { varyOn = s.vary; $("vary").setAttribute("aria-pressed", String(varyOn)); }
+  showVals();
+});
+new ResizeObserver(() => drawPlan()).observe(cv);
+$("code").textContent = "// 音はファイルではなく、その場で作る(src/render/paperSound.ts)\n// AudioContext は最初に鳴らすとき(人の操作の中)で作る";
+showVals(); drawPlan(); document.body.dataset.played = "0"; ready();
+</script></body></html>

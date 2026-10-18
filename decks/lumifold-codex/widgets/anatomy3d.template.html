@@ -1,0 +1,261 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>紙面の解剖</title>
+<style>/*INC:_lib.css*/
+:root { --cols: 42; }
+.frame.dark { padding: 0; overflow: hidden; }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#gl.grabbing { cursor: grabbing; }
+.top { position: absolute; left: .7em; right: .7em; top: .55em; display: flex; gap: .5em; align-items: center; flex-wrap: wrap; pointer-events: none; }
+.top > * { pointer-events: auto; }
+.top .spacer { flex: 1; pointer-events: none; }
+.layers { position: absolute; left: .7em; top: 2.6em; width: 12.6em; font-size: .78em; padding: .45em .5em .5em; }
+.layers h3 { margin: 0 0 .3em; font: 700 1em "Yu Mincho", serif; color: var(--rubric); display: flex; justify-content: space-between; align-items: baseline; }
+.layers h3 small { font: 400 .8em var(--mono); color: var(--sub); }
+.layers ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; gap: .12em; }
+.layers li button { width: 100%; text-align: left; border: 1px solid transparent; background: transparent; border-radius: .3em; padding: .12em .4em; display: flex; gap: .4em; align-items: center; font-size: .95em; }
+.layers li button:hover { border-color: var(--line); background: rgba(255, 255, 255, .5); }
+.layers li button.on { background: var(--walnut); color: var(--gold-l); }
+.layers li .ix { font: 700 .8em var(--mono); color: var(--sub); width: 1.4em; text-align: right; }
+.layers li button.on .ix { color: var(--gold); }
+.layers li .ty { font: .78em var(--mono); color: var(--gold-d); margin-left: auto; }
+.layers li.extra button { font-style: italic; color: var(--sub); }
+.layers .ops { display: flex; gap: .3em; margin-top: .45em; }
+.layers .ops .btn { flex: 1; padding: .15em .3em; font-size: .9em; }
+.card { position: absolute; right: .7em; bottom: 3.4em; width: 19.5em; font-size: .76em; padding: .5em .7em .55em; }
+.card h3 { margin: 0 0 .25em; font: 700 1.05em "Yu Mincho", serif; color: var(--rubric); }
+.card pre { margin: 0; font: .86em/1.45 var(--mono); white-space: pre-wrap; word-break: break-all; background: rgba(140, 107, 28, .1); border-radius: .3em; padding: .3em .45em; max-height: 9.5em; overflow: hidden; }
+.card .css { margin-top: .35em; font: .86em/1.45 var(--mono); color: var(--verd); }
+.card .note { margin-top: .3em; line-height: 1.5; color: var(--sub); }
+.bottom { position: absolute; left: .7em; right: .7em; bottom: .55em; display: flex; gap: .5em 1em; align-items: center; flex-wrap: wrap; font-size: .9em; }
+.bottom label { color: #E6D4AE; } .bottom output { color: var(--gold-l); min-width: 4.4em; }
+.bottom .btn { font-size: .8em; }
+</style></head><body><div class="frame dark">
+<canvas id="gl" aria-label="1 ページを要素ごとの層に分けた立体。ドラッグで回す"></canvas>
+<div class="top"><span class="tag">さわれる図 03 · 紙面の解剖</span><span class="spacer"></span>
+  <button class="btn" id="ui" aria-pressed="true">編集の層</button><button class="btn" id="view">正面から</button></div>
+<div class="layers parch" id="layers"></div>
+<div class="card parch" id="card" aria-live="polite"></div>
+<div class="bottom">
+  <label>分解 <input type="range" id="explode" min="0" max="1" step="0.01" value="0.6" aria-label="層の離れ具合"><output id="ev"></output></label>
+  <label>拡縮 s <input type="range" id="scale" min="0.4" max="1.2" step="0.01" value="0.8" aria-label="紙面の拡縮"><output id="sv"></output></label>
+</div>
+</div>
+<script>/*THREE*/</script>
+<script>"use strict";
+/*INC:_lib.js*/
+/*INC:_lib3d.js*/
+// ------------------------------------------------------------ 例のページ(本文の elements の順に下から積む)
+const PW = 768, PH = 1024;
+const EL = [
+  { id: "p29-paper", type: "image", x: 0, y: 0, w: 768, h: 1024, extra: { src: "assets/parchment.jpg", locked: true } },
+  { id: "p29-kicker", type: "text", x: 64, y: 40, w: 640, h: 26, extra: { style: { fontSize: 11, color: "accent1" } }, text: "巻四 · 紙面を描く" },
+  { id: "p29-title", type: "text", x: 64, y: 72, w: 640, h: 80, extra: { role: "title", style: { fontSize: 24, color: "dk2" } }, text: "論理キャンバスと拡縮" },
+  { id: "p29-rule", type: "shape", x: 64, y: 164, w: 640, h: 2, extra: { shape: "line", line: { color: "accent3", width: 2 } } },
+  { id: "p29-body", type: "text", x: 64, y: 188, w: 640, h: 200, extra: { style: { fontSize: 14, lineHeight: 1.8 } }, text: "要素の位置は、いつも同じ大きさの論理キャンバスの px で書く。" },
+  { id: "p29-chart", type: "chart", x: 64, y: 410, w: 300, h: 230, extra: { chart: { kind: "bar", labels: ["文字", "図形", "画像"], series: [{ name: "数", values: [9, 5, 2] }] } } },
+  { id: "p29-math", type: "math", x: 404, y: 410, w: 300, h: 100, extra: { latex: "s = \\min(W/768,\\ H/1024)" } },
+  { id: "p29-table", type: "table", x: 404, y: 530, w: 300, h: 110, extra: { header: true, rows: [[{ text: "形式" }, { text: "大きさ" }], [{ text: "スライド" }, { text: "1280×720" }], [{ text: "ノート" }, { text: "768×1024" }]] } },
+  { id: "p29-widget", type: "embed", x: 64, y: 670, w: 640, h: 250, extra: { src: "widgets/anatomy3d.html", title: "紙面の解剖", locked: true } },
+];
+const EXTRA = [
+  { id: "page-number", type: "番号", x: 64, y: 966, w: 120, h: 28, note: "ページ番号は要素ではない。Slide.tsx が要素の後に描くので、いつもいちばん上(選べず、クリックも奪わない)。" },
+  { id: "editor-ui", type: "UI", x: 0, y: 0, w: 768, h: 1024, note: "Moveable の枠とつまみ。Slide の children として最後に重なる。紙面の拡縮に合わせて縮まないよう、zoom = 1/s で大きさを打ち消す。" },
+];
+const TYPE_COLOR = { image: "#8C6B1C", text: "#34508A", shape: "#5F7A3A", chart: "#9E3A22", math: "#6B4A8A", table: "#2F6E6A", embed: "#B5651D", 番号: "#6B5A45", UI: "#2E7BD6" };
+
+// 各要素を、要素の枠だけの絵(CanvasTexture)にする。字や形は本物に似せた簡単な描き方
+function drawEl(e, g, w, h) {
+  const r = rng(e.id.length * 7);
+  switch (e.type) {
+    case "image": paperFill(g, w, h, "#EFE2C3", 5); g.strokeStyle = "rgba(154,122,68,.7)"; g.lineWidth = 1.3; g.strokeRect(22, 22, w - 44, h - 44); g.lineWidth = .6; g.strokeRect(27.5, 27.5, w - 55, h - 55); break;
+    case "text": {
+      const size = e.extra.style.fontSize * 4 / 3;
+      g.fillStyle = e.id.endsWith("kicker") ? "#9E3A22" : e.id.endsWith("title") ? "#4A2A17" : "#2B2118";
+      g.font = `${e.id.endsWith("body") ? 400 : 700} ${size}px "Yu Mincho", "BIZ UDPMincho", serif`; g.textBaseline = "top";
+      if (e.id.endsWith("body")) {
+        const lines = ["要素の位置は、いつも同じ大きさの「論理キャンバス」の", "px で書きます。スライドは 1280×720、ノートは", "768×1024。画面の大きさに合わせるのは、最後の", "1 回の拡縮だけです。"];
+        lines.forEach((s, i) => g.fillText(s, 0, 4 + i * size * 1.8));
+      } else g.fillText(e.text, 0, e.id.endsWith("title") ? h - size * 1.35 : 2);
+      break;
+    }
+    case "shape": g.fillStyle = "#C9A227"; g.fillRect(0, 0, w, h); break;
+    case "chart": {
+      g.fillStyle = "rgba(255,251,240,.6)"; g.fillRect(0, 0, w, h);
+      const vals = [9, 5, 2], cols = ["#9E3A22", "#2F6E6A", "#C9A227"];
+      g.strokeStyle = "#CDB88E"; for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(30, 30 + i * 45); g.lineTo(w - 10, 30 + i * 45); g.stroke(); }
+      vals.forEach((v, i) => { const bh = v * 17; g.fillStyle = cols[0]; g.fillRect(50 + i * 85, 195 - bh, 50, bh); g.fillStyle = "#2B2118"; g.font = `16px "Yu Mincho", serif`; g.fillText(["文字", "図形", "画像"][i], 55 + i * 85, 202); g.fillText(String(v), 66 + i * 85, 175 - bh); });
+      break;
+    }
+    case "math": g.fillStyle = "#2B2118"; g.font = `italic 25px "Cambria Math", Cambria, serif`; g.textBaseline = "middle"; g.fillText("s = min(W/768, H/1024)", 4, h / 2); break;
+    case "table": {
+      const rows = e.extra.rows, rh = h / rows.length;
+      rows.forEach((row, ri) => row.forEach((c, ci) => {
+        g.fillStyle = ri === 0 ? "#8A3220" : ri % 2 ? "#F6EEDB" : "#EADBB9"; g.fillRect(ci * w / 2, ri * rh, w / 2, rh);
+        g.strokeStyle = "#C8B48C"; g.strokeRect(ci * w / 2 + .5, ri * rh + .5, w / 2 - 1, rh - 1);
+        g.fillStyle = ri === 0 ? "#F6EEDB" : "#2B2118"; g.font = `${ri === 0 ? 700 : 400} 17px "Yu Mincho", serif`; g.textBaseline = "middle"; g.fillText(c.text, ci * w / 2 + 10, ri * rh + rh / 2);
+      }));
+      break;
+    }
+    case "embed": {
+      const grd = g.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2); grd.addColorStop(0, "#3A2414"); grd.addColorStop(1, "#120A06");
+      g.fillStyle = grd; g.fillRect(0, 0, w, h); g.strokeStyle = "#2B1A11"; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8); g.strokeStyle = "#C9A227"; g.lineWidth = 2; g.strokeRect(9, 9, w - 18, h - 18);
+      g.fillStyle = "#F0D98A"; g.font = `700 22px "Yu Mincho", serif`; g.fillText("❧ さわれる図(iframe)", 24, 42);
+      for (let i = 0; i < 5; i++) { g.fillStyle = ["#6E2416", "#24365E", "#2A5550", "#7A5A20", "#5A2A1A"][i]; g.fillRect(250 + i * 42, 90, 34, 120); }
+      g.fillStyle = "#CDB98F"; g.font = `15px var(--mono), monospace`; g.fillText('sandbox="allow-scripts"', 24, h - 26);
+      break;
+    }
+    case "番号": g.fillStyle = "#7A6650"; g.font = `20px "BIZ UDPMincho", serif`; g.textBaseline = "middle"; g.fillText("29", 4, h / 2); break;
+    case "UI": break;
+  }
+}
+
+// ------------------------------------------------------------ 場面
+const canvas = $("gl");
+const renderer = makeRenderer(canvas);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+scene.add(new THREE.AmbientLight(0xFFF1D6, 1.6));
+const key = new THREE.DirectionalLight(0xFFE0B0, 1.2); key.position.set(-4, 6, 8); scene.add(key);
+const U = 1 / 100; // 1 単位 = 100px
+const stack = new THREE.Group(); scene.add(stack);
+const layers = [];
+let order = EL.map((e) => e.id); // 本文の elements の順(下から)
+function makeLayer(e, extra = false) {
+  const g = new THREE.Group();
+  // 紙の範囲の薄い枠(どの層も同じ大きさの紙の上にある)
+  const outline = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(PW * U, PH * U)), new THREE.LineBasicMaterial({ color: 0xC9A227, transparent: true, opacity: 0.22 }));
+  g.add(outline);
+  let mesh = null;
+  if (e.type === "UI") {
+    mesh = new THREE.Group(); g.add(mesh);
+  } else {
+    const sc = 2, tex = canvasTexture(Math.ceil(e.w * sc), Math.ceil(e.h * sc), (c, w, h) => { c.scale(sc, sc); drawEl(e, c, e.w, e.h); });
+    mesh = new THREE.Mesh(new THREE.PlaneGeometry(e.w * U, e.h * U), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: e.type === "image" }));
+    mesh.position.set((e.x + e.w / 2 - PW / 2) * U, -(e.y + e.h / 2 - PH / 2) * U, 0);
+    mesh.userData.id = e.id; g.add(mesh);
+  }
+  // 選んだときの枠(要素の箱)
+  const sel = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(e.w * U, e.h * U)), new THREE.LineBasicMaterial({ color: new THREE.Color(TYPE_COLOR[e.type]), transparent: true, opacity: 0 }));
+  sel.position.set((e.x + e.w / 2 - PW / 2) * U, -(e.y + e.h / 2 - PH / 2) * U, 0.002); g.add(sel);
+  stack.add(g);
+  const L = { e, g, mesh, sel, outline, extra, z: 0 };
+  layers.push(L); return L;
+}
+EL.forEach((e) => makeLayer(e));
+const numLayer = makeLayer(EXTRA[0], true);
+const uiLayer = makeLayer(EXTRA[1], true);
+// 編集の層: Moveable の枠とつまみ(選んだ要素に合わせて作り直す)
+const uiMat = new THREE.LineBasicMaterial({ color: 0x2E7BD6 });
+const knobMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+const knobEdge = new THREE.LineBasicMaterial({ color: 0x2E7BD6 });
+function buildUi(id) {
+  uiLayer.mesh.clear();
+  const e = EL.find((x) => x.id === id) || EL.find((x) => x.id === "p29-title");
+  const cx = (e.x + e.w / 2 - PW / 2) * U, cy = -(e.y + e.h / 2 - PH / 2) * U, w = e.w * U, h = Math.max(e.h, 8) * U;
+  const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(w, h)), uiMat); frame.position.set(cx, cy, 0); uiLayer.mesh.add(frame);
+  for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]) {
+    const k = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.09), knobMat); k.position.set(cx + dx * w / 2, cy + dy * h / 2, 0.003); uiLayer.mesh.add(k);
+    const ke = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.09, 0.09)), knobEdge); ke.position.copy(k.position); uiLayer.mesh.add(ke);
+  }
+  const rot = new THREE.Mesh(new THREE.CircleGeometry(0.05, 16), knobMat); rot.position.set(cx, cy + h / 2 + 0.3, 0.003); uiLayer.mesh.add(rot);
+  const stem = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(cx, cy + h / 2, 0.002), new THREE.Vector3(cx, cy + h / 2 + 0.25, 0.002)]), uiMat); uiLayer.mesh.add(stem);
+  // スナップのガイド線(紙の中央)
+  const guide = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, PH * U / 2, 0.001), new THREE.Vector3(0, -PH * U / 2, 0.001)]), new THREE.LineDashedMaterial({ color: 0xE04A2A, dashSize: 0.08, gapSize: 0.06 }));
+  guide.computeLineDistances(); uiLayer.mesh.add(guide);
+}
+
+// ------------------------------------------------------------ 状態と描き直し
+let explode = 0.6, scaleS = 0.8, selId = "p29-title", showUi = true, yaw = -0.95, pitch = 0.28, dist = 19;
+const zOf = new Map();
+function layout() {
+  const ids = [...order, "page-number", ...(showUi ? ["editor-ui"] : [])];
+  ids.forEach((id, i) => zOf.set(id, i));
+  uiLayer.g.visible = showUi;
+}
+function renderPanels() {
+  const list = $("layers");
+  const items = [...order.map((id) => EL.find((e) => e.id === id)), EXTRA[0], ...(showUi ? [EXTRA[1]] : [])];
+  list.innerHTML = `<h3>elements の順 <small>下 → 上</small></h3><ol>${items.map((e, i) => {
+    const isExtra = !EL.includes(e);
+    return `<li class="${isExtra ? "extra" : ""}"><button data-id="${e.id}" class="${e.id === selId ? "on" : ""}"><span class="ix">${isExtra ? "·" : i}</span>${esc(e.id.replace("p29-", ""))}<span class="ty">${e.type}</span></button></li>`;
+  }).join("")}</ol><div class="ops"><button class="btn" id="back" title="背面へ(配列の前へ)">背面へ</button><button class="btn" id="front" title="前面へ(配列の後ろへ)">前面へ</button></div>`;
+  list.querySelectorAll("li button").forEach((b) => b.addEventListener("click", () => pick(b.dataset.id)));
+  $("back").onclick = () => reorder(-1); $("front").onclick = () => reorder(1);
+  const movable = order.includes(selId);
+  $("back").disabled = !movable || order.indexOf(selId) === 0; $("front").disabled = !movable || order.indexOf(selId) === order.length - 1;
+  const e = EL.find((x) => x.id === selId), x = EXTRA.find((x) => x.id === selId), card = $("card");
+  if (e) {
+    const json = JSON.stringify({ id: e.id, type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, ...e.extra });
+    card.innerHTML = `<h3>${esc(e.id)} <span class="sub" style="font-size:.8em">elements[${order.indexOf(e.id)}]</span></h3><pre>${esc(json.length > 210 ? json.slice(0, 207) + "…" : json)}</pre>
+      <div class="css">position:absolute; left:${e.x}px; top:${e.y}px;<br>width:${e.w}px; height:${e.h}px;</div>
+      <div class="note">重なり順は配列の順番そのもの(z-index は使わない)。</div>`;
+  } else {
+    card.innerHTML = `<h3>${x.id === "page-number" ? "ページ番号" : "編集の層(Moveable)"}</h3><div class="note" style="color:var(--ink)">${esc(x.note)}</div>`;
+  }
+  $("ev").textContent = explode.toFixed(2); $("sv").textContent = `${scaleS.toFixed(2)} → ${Math.round(768 * scaleS)}×${Math.round(1024 * scaleS)}`;
+  Object.assign(document.body.dataset, { selected: selId, order: order.join(","), explode: explode.toFixed(2), scale: scaleS.toFixed(2) });
+  buildUi(selId);
+}
+function pick(id) { selId = id; renderPanels(); publishState(); }
+function reorder(d) {
+  const i = order.indexOf(selId), j = i + d;
+  if (i < 0 || j < 0 || j >= order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  layout(); renderPanels(); publishState();
+}
+function publishState() { publish({ selId, order, explode, scaleS, showUi }); }
+$("explode").addEventListener("input", (e) => { explode = +e.target.value; renderPanels(); publishState(); });
+$("scale").addEventListener("input", (e) => { scaleS = +e.target.value; renderPanels(); publishState(); });
+$("ui").addEventListener("click", () => { showUi = !showUi; $("ui").setAttribute("aria-pressed", String(showUi)); if (!showUi && selId === "editor-ui") selId = "p29-title"; layout(); renderPanels(); publishState(); });
+$("view").addEventListener("click", () => { yaw = 0; pitch = 0; explode = 0; dist = 17; $("explode").value = 0; renderPanels(); publishState(); });
+onRestore((s) => {
+  if (Array.isArray(s.order) && s.order.length === EL.length && EL.every((e) => s.order.includes(e.id))) order = s.order.slice();
+  if (Number.isFinite(s.explode)) { explode = clamp(s.explode, 0, 1); $("explode").value = explode; }
+  if (Number.isFinite(s.scaleS)) { scaleS = clamp(s.scaleS, 0.4, 1.2); $("scale").value = scaleS; }
+  if (typeof s.showUi === "boolean") { showUi = s.showUi; $("ui").setAttribute("aria-pressed", String(showUi)); }
+  if (typeof s.selId === "string" && [...EL, ...EXTRA].some((e) => e.id === s.selId)) selId = s.selId;
+  layout(); renderPanels();
+});
+
+const ray = new THREE.Raycaster();
+pointerControls(canvas, {
+  drag: (dx, dy) => { yaw = clamp(yaw - dx * 0.006, -1.5, 1.5); pitch = clamp(pitch + dy * 0.005, -0.6, 1.0); },
+  click: (e) => {
+    ray.setFromCamera(ndc(e, canvas), camera);
+    const hits = ray.intersectObjects(layers.filter((l) => l.mesh.isMesh && l.g.visible).map((l) => l.mesh), false);
+    // 手前(上の層)から。紙の地は最後
+    const hit = hits.find((h) => h.object.userData.id !== "p29-paper") || hits[0];
+    if (hit) pick(hit.object.userData.id);
+  },
+  wheel: (dy) => { dist = clamp(dist + dy * 0.01, 9, 26); },
+});
+
+// ------------------------------------------------------------ 毎フレーム
+const still = reducedMotion();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const k = still ? 1 : 1 - Math.exp(-dt * 8);
+  const gap = 0.02 + explode * 1.15;
+  for (const L of layers) {
+    const want = (zOf.get(L.e.id) ?? 0) * gap;
+    L.z = lerp(L.z, want, k);
+    L.g.position.z = L.z;
+    const on = L.e.id === selId;
+    L.sel.material.opacity = lerp(L.sel.material.opacity, on ? 1 : 0, k);
+    L.outline.material.opacity = (on ? 0.65 : 0.12) * Math.min(1, explode * 3);
+    if (L.mesh.isMesh) L.mesh.material.opacity = lerp(L.mesh.material.opacity ?? 1, selId && !on && explode > 0.15 ? 0.78 : 1, k);
+  }
+  const s = lerp(stack.scale.x, scaleS, k); stack.scale.set(s, s, s);
+  stack.position.z = -((order.length + 1) * gap * s) / 2;
+  camera.position.set(dist * Math.sin(yaw) * Math.cos(pitch), dist * Math.sin(pitch), dist * Math.cos(yaw) * Math.cos(pitch));
+  camera.lookAt(0, 0, 0);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+// 左の一覧と右下の説明を避けて、立体を右上寄りに見せる
+watchSize(canvas, renderer, camera, (w, h) => camera.setViewOffset(w, h, -0.1 * w, 0.07 * h, w, h));
+layout(); renderPanels();
+window.__lib = { project(id) { const L = layers.find((l) => l.e.id === id); const p = new THREE.Vector3(); L.mesh.getWorldPosition(p); return toScreen(p, camera, canvas); } };
+requestAnimationFrame(frame);
+ready();
+</script></body></html>
