@@ -155,14 +155,19 @@ const NOTE = '/tools/fixtures/note-demo/note-demo.deck';
     assert.equal(await page.locator('.presentation-count').innerText(), `2–3 / ${n}`);
     await page.screenshot({ path: `${OUT}/spread-2-3.png` });
   });
-  await check('→ キー・クリック・ホイールでめくる(途中で押すと前のめくりを終えて次へ)', async () => {
+  await check('→ キー・端のクリック・ホイールでめくる(途中で押すと前のめくりを終えて次へ。本文の上のクリックではめくらない)', async () => {
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(260);
     await page.screenshot({ path: `${OUT}/key-turn-mid.png` });
     assert.equal(await page.locator('.reader-face[data-role="back"]').count(), 1);
     await page.keyboard.press('ArrowRight'); // 途中で次へ
     await arrive(page, 5);
-    await page.mouse.click(book.x + W * 0.5, book.y + H * 0.5); // 左ページをクリックで戻る
+    await page.mouse.click(book.x + W * 1.5, book.y + H * 0.5); // 右ページの本文の上: めくらない
+    await page.mouse.click(book.x + W * 0.5, book.y + H * 0.5); // 左ページの本文の上: めくらない
+    await page.waitForTimeout(400);
+    assert.equal(await current(page), 5);
+    assert.equal(await page.locator('.reader-face[data-role="back"]').count(), 0);
+    await page.mouse.click(book.x + W * 0.08, book.y + H * 0.5); // 左ページの外側の端で戻る
     await arrive(page, 3);
     await page.mouse.move(book.x + W * 1.5, book.y + H * 0.5);
     await page.mouse.wheel(0, 120);
@@ -310,7 +315,7 @@ const NOTE = '/tools/fixtures/note-demo/note-demo.deck';
     assert.equal(await sideOf(2), 'left');
     await page.screenshot({ path: `${OUT}/rtl-spread-2-3.png` });
   });
-  await check('右綴じ: 左ページの角をつまんで右へめくる / → で戻る / 左ページのクリックで次へ', async () => {
+  await check('右綴じ: 左ページの角をつまんで右へめくる / → で戻る / 左ページの端のクリックで次へ', async () => {
     const sx = book.x + 20, sy = book.y + H - 20;
     await page.mouse.move(sx, sy); await page.mouse.down();
     await page.mouse.move(sx + W * 0.7, sy - 60, { steps: 10 });
@@ -320,7 +325,7 @@ const NOTE = '/tools/fixtures/note-demo/note-demo.deck';
     await arrive(page, 3);
     await page.keyboard.press('ArrowRight');
     await arrive(page, 1);
-    await page.mouse.click(book.x + W * 0.5, book.y + H * 0.5);
+    await page.mouse.click(book.x + W * 0.08, book.y + H * 0.5);
     await arrive(page, 3);
   });
   await check('右綴じの単ページ: とじ目は右端、← で次へ(紙は左からめくれる)', async () => {

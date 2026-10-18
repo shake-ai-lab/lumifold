@@ -12,7 +12,7 @@ import { readStored, writeStored } from "./storage";
 
 /**
  * ノートを本のように読む画面。単ページ / 見開き(表紙は右に 1 枚、以降 2-3, 4-5 …)を切り替え、
- * 紙の角をつまんでドラッグ、またはクリック・← →・ホイールでめくる。めくる紙は折り目で折り返し、
+ * 紙をつまんでドラッグ、またはページの外側の端のクリック・← →・ホイールでめくる。めくる紙は折り目で折り返し、
  * 裏・折り目の陰・下のページに落ちる影・とじ目の陰を付ける(形の計算は render/pageTurn.ts)。めくる音は render/paperSound.ts。
  * 右綴じ(deck.binding = "right")は左右を入れ替える: 表紙は左に 1 枚、左ページをめくって読み進め、← で次へ。
  */
@@ -25,6 +25,22 @@ const readFlag = (key: string): boolean | null => {
 const saveFlag = (key: string, on: boolean) => writeStored(key, on ? "1" : "0");
 const TURN_MS = 720;
 const PAD = 28;
+/** クリックでめくるのは、ページの外側の端(幅のこの割合)と本の外だけ。本文の上のクリックではめくらない(つまんでめくる邪魔をしない) */
+const CLICK_EDGE = 0.2;
+
+/** クリックした点(本の座標)でめくる向き。端でなければ null */
+function clickTurn(p: Pt, W: number, spread: boolean, rtl: boolean): 1 | -1 | null {
+  if (spread) {
+    if (p.x < -W * (1 - CLICK_EDGE)) return rtl ? 1 : -1;
+    if (p.x > W * (1 - CLICK_EDGE)) return rtl ? -1 : 1;
+    return null;
+  }
+  // 単ページはとじ目の側の端で戻り、反対の端で進む(右綴じはとじ目が右端で、ページは x = -W〜0)
+  const u = (p.x - (rtl ? -W : 0)) / W;
+  const binding = rtl ? u > 1 - CLICK_EDGE : u < CLICK_EDGE;
+  const outer = rtl ? u < CLICK_EDGE : u > 1 - CLICK_EDGE;
+  return binding ? -1 : outer ? 1 : null;
+}
 
 /** 見開きの番号 k のページ。0 は表紙だけ(右)、以降は [2k-1, 2k] */
 const spreadOf = (i: number) => (i <= 0 ? 0 : Math.floor((i + 1) / 2));
@@ -312,7 +328,19 @@ export function Reader({ deck, current, onExit }: { deck: Deck; current: number;
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const p = bookPoint(e);
     const d = drag.current;
-    if (!d) { hover(p); return; }
+    if (!d) {
+      // 端ではクリックでめくれることを、ほかではつまめることをカーソルで示す
+      const { W, spread, rtl } = geo.current;
+      if (stage.current) stage.current.style.cursor = p && clickTurn(p, W, spread, rtl) ? "pointer" : "grab";
+      hover(p);
+      return;
+    }
+    if (e.pointerId === d.id && e.pointerType === "mouse" && e.buttons === 0) {
+      // 離した知らせ(pointerup)を取りこぼした(ウィンドウの切り替えなど)。押していないのに紙が付いてきて勝手にめくれないよう、取り消して戻す
+      endDrag(e, true);
+      return;
+    }
+    if (stage.current) stage.current.style.cursor = "grabbing";
     if (e.pointerId !== d.id || !p) return;
     const dx = p.x - d.start.x, dy = p.y - d.start.y;
     if (!d.moved) {
@@ -344,7 +372,13 @@ export function Reader({ deck, current, onExit }: { deck: Deck; current: number;
     const d = drag.current;
     if (!d || e.pointerId !== d.id) return;
     drag.current = null;
-    if (!d.moved) { if (!cancelled) go(d.dir); return; }
+    if (stage.current) stage.current.style.cursor = "";
+    if (!d.moved) {
+      const { W, spread, rtl } = geo.current;
+      const dir = cancelled ? null : clickTurn(d.start, W, spread, rtl);
+      if (dir) go(dir);
+      return;
+    }
     const live = turnRef.current;
     const p = bookPoint(e);
     if (!live || live.mode !== "drag") {
@@ -475,7 +509,7 @@ export function Reader({ deck, current, onExit }: { deck: Deck; current: number;
 
   return <div className="reader" ref={root} tabIndex={-1} aria-label="読書モード">
     <div className="reader-stage" ref={stage} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
-      onPointerUp={(e) => endDrag(e, false)} onPointerCancel={(e) => endDrag(e, true)} onPointerLeave={() => { if (!drag.current) hover(null); }}
+      onPointerUp={(e) => endDrag(e, false)} onPointerCancel={(e) => endDrag(e, true)} onLostPointerCapture={(e) => endDrag(e, true)} onPointerLeave={() => { if (!drag.current) hover(null); }}
       onWheel={onWheel}>
       {scale > 0 && <div className={`reader-book ${spread ? "spread" : "single"}${turn && turn.mode !== "peek" ? " turning" : ""}`} ref={book}
         style={{ width: spread ? W * 2 : W, height: H }}>
@@ -491,7 +525,7 @@ export function Reader({ deck, current, onExit }: { deck: Deck; current: number;
     </div>
     <footer className="presentation-controls">
       <span className="mode-label">読書モード</span>
-      <span className="presentation-hint">{rtl ? "右綴じ · 紙の端をつまんでめくる · ← で次へ" : "紙の端をつまんでめくる · クリック・← → でも"}</span>
+      <span className="presentation-hint">{rtl ? "右綴じ · 紙をつまんでめくる · 端のクリック・← で次へ" : "紙をつまんでめくる · 端のクリック・← → でも"}</span>
       {rtl ? nextButton : prevButton}
       <span className="presentation-count" aria-live="polite">{countLabel}</span>
       <select className="presentation-jump" aria-label="移動するページ" value={current} onChange={(e) => jump(Number(e.target.value))}>
