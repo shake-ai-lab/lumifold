@@ -1,0 +1,169 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>懐中電灯: 実物と回路図</title>
+<style>/*INC:_ed.css*/
+:root { --cols: 40; }
+.views { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .6em; }
+.views .panel svg { width: 100%; height: 100%; }
+.part { cursor: pointer; }
+.part .halo { fill: transparent; stroke: none; rx: 8; }
+.part.hi .halo { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.sch { color: var(--ink); }
+.sch .live { color: var(--red); }
+.hint { min-height: 4.6em; }
+.found { display: flex; flex-wrap: wrap; gap: .3em .45em; align-items: center; font-size: .74em; color: var(--sub); }
+.found span.f { padding: .08em .6em; border-radius: 999px; border: 1.5px dashed var(--line); background: var(--card); white-space: nowrap; }
+.found span.f.got { border-style: solid; border-color: var(--green); color: var(--green); font-weight: 700; background: var(--green-soft); }
+.flowg { color: #FFB000; } .flowg polyline { stroke-width: 3; } .flowg.rev polyline { animation-direction: reverse; }
+.wirehit { stroke: transparent; stroke-width: 16; fill: none; cursor: pointer; }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 01 · 懐中電灯</span><span class="chip">実物 ⇄ 回路図</span></header>
+<div class="views">
+  <div class="panel"><span class="ptitle">実物(実体図)</span><svg id="real" viewBox="0 0 300 250" aria-label="懐中電灯の実物の絵"></svg></div>
+  <div class="panel"><span class="ptitle">回路図</span><svg id="sch" class="sch" viewBox="0 0 300 250" aria-label="懐中電灯の回路図"></svg></div>
+</div>
+<div class="hint" id="hint"></div>
+<div class="found" id="found"></div>
+<div class="controls">
+  <button class="btn primary" id="sw" aria-pressed="false">スイッチを入れる</button>
+  <button class="btn" id="cut" aria-pressed="false">✂ 線を切る</button>
+  <button class="btn" id="rev" aria-pressed="false">⇅ 電池を逆に</button>
+  <div class="seg" id="mode"><button data-v="lamp" class="on" aria-pressed="true">ランプ</button><button data-v="led" aria-pressed="false">LED</button></div>
+</div>
+</div>
+<script>"use strict";
+/*INC:_ed.js*/
+/*INC:_sym.js*/
+const st = { on: false, cut: false, rev: false, mode: "lamp" };
+let focus = null; // 指している部品
+const found = { lit: false, cut: false, ledRev: false, lampRev: false };
+const FOUND_LABEL = { lit: "光らせた", cut: "線を切ると消える", ledRev: "LED は向きがある", lampRev: "ランプは向きがない" };
+const INFO = {
+  batt: "<b>電池 BT1</b>(1.5 V × 2 本 = 3 V)。記号は<b>長い線が +、短い太い線が −</b>。2 本を直列につなぐと電圧は足し算になる。",
+  sw: "<b>スイッチ SW1</b>。記号は「ふだんは開いている接点(a 接点)」。入れると可動片が倒れて線がつながる。",
+  lamp: "<b>ランプ L1</b>。丸の中に ×。ランプには<b>向きがない</b>ので、電池を逆にしても光る。",
+  led: "<b>LED D1</b>。三角の向き(上 → 下)にだけ電流が流れる。実物では<b>足の長いほうがアノード(+ 側)</b>。",
+  res: "<b>抵抗 R1</b>(100 Ω)。LED に流れる電流を絞る。LED には抵抗がほぼ必ずペアで付く(4 章)。",
+  wire: "<b>電線</b>。回路図の線は「つながっている」ことだけを表す。実物の長さや曲がり方、色は回路図には出てこない。",
+};
+const flowing = () => st.on && !st.cut && (st.mode === "lamp" || !st.rev);
+const part = (name, halo, inner) => `<g class="part${focus === name ? " hi" : ""}" data-part="${name}"><rect class="halo" x="${halo[0]}" y="${halo[1]}" width="${halo[2]}" height="${halo[3]}" rx="8"/>${inner}</g>`;
+
+// ---- 実物の絵
+function cell(x, flip) {
+  const body = `<rect x="${x}" y="199" width="80" height="32" rx="6" fill="#1E6BB8"/><rect x="${flip ? x + 62 : x}" y="199" width="18" height="32" rx="6" fill="#163F6A"/>`;
+  const nub = flip ? `<rect x="${x - 6}" y="207" width="7" height="16" rx="2" fill="#C9CED6"/>` : `<rect x="${x + 79}" y="207" width="7" height="16" rx="2" fill="#C9CED6"/>`;
+  const plus = flip ? x + 12 : x + 68, minus = flip ? x + 68 : x + 12;
+  return body + nub + `<text x="${x + 40}" y="216" font-size="11" fill="#fff" text-anchor="middle" dominant-baseline="central" font-weight="700">1.5V</text>`
+    + `<text x="${plus}" y="216" font-size="13" fill="#fff" text-anchor="middle" dominant-baseline="central" font-weight="700">+</text>`
+    + `<text x="${minus}" y="216" font-size="13" fill="#9FC3EA" text-anchor="middle" dominant-baseline="central" font-weight="700">−</text>`;
+}
+const W1 = "M248 215C274 215 262 190 250 178";
+const W2L = "M250 112C250 92 200 101 174 101";
+const W2A = "M250 112C250 100 238 104 228 104", W2B = "M196 104C186 104 182 101 174 101";
+const W3 = "M126 101Q60 101 56 150Q52 190 52 215";
+function real() {
+  const lit = flowing(), led = st.mode === "led";
+  let s = "";
+  // 電池ボックス
+  s += part("batt", [44, 186, 212, 58], `<rect x="58" y="192" width="184" height="46" rx="7" fill="#2E3A4A"/>` + cell(66, st.rev) + cell(154, st.rev)
+    + `<rect x="46" y="209" width="12" height="12" rx="2" fill="#C9CED6"/><rect x="242" y="209" width="12" height="12" rx="2" fill="#C9CED6"/>`
+    + `<text x="268" y="240" font-size="11" fill="#5B6676" text-anchor="middle">${st.rev ? "−" : "+"}</text><text x="34" y="240" font-size="11" fill="#5B6676" text-anchor="middle">${st.rev ? "+" : "−"}</text>`);
+  // 電線(赤 = + 側、黒 = − 側)
+  const wire = (d, color) => `<path d="${d}" fill="none" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/><path d="${d}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2" stroke-linecap="round"/>`;
+  const hit = (d) => `<path class="wirehit" data-part="wire" d="${d}"/>`;
+  s += wire(W1, "#D64545") + (led ? wire(W2A, "#D64545") + wire(W2B, "#D64545") : wire(W2L, "#D64545")) + wire(W3, "#2B2F36");
+  if (lit) {
+    const fl = (d) => `<path class="flow" d="${d}" fill="none" stroke="#FFD43B" stroke-width="2.6"${st.rev ? ' style="animation-direction:reverse"' : ""}/>`;
+    s += fl(W1) + (led ? fl(W2A) + fl(W2B) : fl(W2L)) + fl(W3);
+  }
+  if (st.cut) s += `<circle cx="56" cy="152" r="9" fill="#fff"/><path d="M50 146L62 158M62 146L50 158" stroke="#D9480F" stroke-width="2"/><text x="78" y="160" font-size="16" fill="#D9480F">✂</text>`;
+  s += hit(W1) + (led ? hit(W2A) + hit(W2B) : hit(W2L)) + hit(W3);
+  // スイッチ(上が ON)
+  const lever = st.on ? "M250 145L262 127" : "M250 145L262 163";
+  s += part("sw", [220, 104, 62, 82], `<rect x="246" y="106" width="8" height="10" fill="#C9CED6"/><rect x="246" y="174" width="8" height="10" fill="#C9CED6"/>`
+    + `<rect x="228" y="116" width="44" height="58" rx="6" fill="#2E3A4A"/><text x="238" y="126" font-size="8" fill="#9FB0C4" text-anchor="middle">ON</text><text x="238" y="166" font-size="8" fill="#9FB0C4" text-anchor="middle">OFF</text>`
+    + `<circle cx="250" cy="145" r="7" fill="#5B6676"/><path d="${lever}" stroke="#E9EDF2" stroke-width="6" stroke-linecap="round"/><circle cx="${st.on ? 262 : 262}" cy="${st.on ? 127 : 163}" r="5" fill="#fff"/>`);
+  // ソケット(左右のねじが端子)
+  s += `<rect x="112" y="90" width="76" height="22" rx="4" fill="#3B4656"/>` + [126, 174].map((x) => `<circle cx="${x}" cy="101" r="5.5" fill="#D7DCE2" stroke="#8A94A3"/><path d="M${x - 3} ${98}L${x + 3} ${104}" stroke="#8A94A3" stroke-width="1.2"/>`).join("");
+  if (!led) {
+    s += part("lamp", [108, 6, 84, 84], (lit ? `<circle cx="150" cy="54" r="48" fill="url(#glow)"/>` : "")
+      + `<circle cx="150" cy="54" r="26" fill="${lit ? "#FFF3B0" : "#F2F5F8"}" stroke="#9AA6B4" stroke-width="1.5"/>`
+      + `<path d="M142 66V54L146 46L150 58L154 46L158 54V66" fill="none" stroke="${lit ? "#E07B00" : "#7D8794"}" stroke-width="1.7" stroke-linejoin="round"/>`
+      + `<rect x="138" y="76" width="24" height="15" rx="2" fill="#C9CED6"/><path d="M138 81H162M138 86H162" stroke="#9AA6B4"/>`);
+  } else {
+    s += part("led", [128, 8, 46, 82], (lit ? `<circle cx="150" cy="46" r="40" fill="url(#glowr)"/>` : "")
+      + `<path d="M155 77V86L174 101M145 77V82L126 101" fill="none" stroke="#9AA6B4" stroke-width="2.2" stroke-linecap="round"/>`
+      + `<path d="M140 72V40A10 10 0 0 1 160 40V72Z" fill="${lit ? "#FF4D3D" : "#F3B0A8"}" stroke="#C2453A" stroke-width="1.2"/><rect x="137" y="70" width="26" height="6" rx="1.5" fill="${lit ? "#FF6A5C" : "#EDA39A"}" stroke="#C2453A" stroke-width="1"/>`
+      + `<text x="182" y="80" font-size="9" fill="#5B6676">長い足 = +</text>`);
+    const band = (x, c) => `<rect x="${x}" y="98" width="3" height="12" fill="${c}"/>`;
+    s += part("res", [192, 92, 40, 24], `<path d="M196 104H228" stroke="#9AA6B4" stroke-width="2"/><rect x="200" y="98" width="24" height="12" rx="4" fill="#E8D3A6"/>` + band(204, "#7B4A2A") + band(209, "#222") + band(214, "#7B4A2A") + band(219, "#C9A227"));
+  }
+  $("real").innerHTML = `<defs><radialGradient id="glow"><stop offset="0" stop-color="#FFE066" stop-opacity=".9"/><stop offset="1" stop-color="#FFE066" stop-opacity="0"/></radialGradient>`
+    + `<radialGradient id="glowr"><stop offset="0" stop-color="#FF6B5B" stop-opacity=".75"/><stop offset="1" stop-color="#FF6B5B" stop-opacity="0"/></radialGradient></defs>` + s;
+}
+
+// ---- 回路図
+function sch() {
+  const lit = flowing(), led = st.mode === "led", live = lit ? ' class="live"' : "";
+  let s = "";
+  const L = 50, R = 250, T = 45, B = 205;
+  // 線(部品のない区間)。電気が流れていれば赤くして点を流す
+  const runs = led
+    ? [[[L, 95], [L, T], [70, T]], [[130, T], [170, T]], [[230, T], [R, T], [R, 95]], [[R, 155], [R, B], [L, B], [L, 155]]]
+    : [[[L, 95], [L, T], [120, T]], [[180, T], [R, T], [R, 95]], [[R, 155], [R, B], [L, B], [L, 155]]];
+  s += `<g${live}>` + runs.map((r) => SYM.wire(r)).join("") + `</g>`;
+  if (lit) s += `<g class="flowg${st.rev ? " rev" : ""}">` + runs.map((r) => SYM.wire(r, ' class="flow"')).join("") + `</g>`;
+  s += runs.map((r) => `<polyline class="wirehit" data-part="wire" points="${r.map((p) => p.join(",")).join(" ")}"/>`).join("");
+  if (st.cut) s += `<circle cx="150" cy="${B}" r="9" fill="#fff"/><path d="M144 ${B - 6}L156 ${B + 6}M156 ${B - 6}L144 ${B + 6}" stroke="#D9480F" stroke-width="2"/><text x="150" y="${B + 24}" font-size="12" fill="#D9480F" text-anchor="middle">✂ 切れている</text>`;
+  const g = (inner) => `<g${live}>${inner}</g>`;
+  s += part("batt", [12, 85, 64, 80], g(st.rev ? SYM.between("batt", L, 155, L, 95) : SYM.between("batt", L, 95, L, 155)) + SYM.label(L - 24, 116, "BT1", { anchor: "end", weight: 700 }) + SYM.label(L - 24, 133, "3 V", { anchor: "end" }));
+  const swx = led ? 70 : 120;
+  s += part("sw", [swx - 4, 16, 68, 40], g(SYM.place("swa", swx, T, 0, { on: st.on })) + SYM.label(swx + 30, T - 22, "SW1", { weight: 700 }));
+  if (led) {
+    s += part("res", [166, 22, 68, 36], g(SYM.place("res", 170, T)) + SYM.label(200, T - 20, "R1 100 Ω", { weight: 700 }));
+    s += part("led", [222, 90, 66, 70], (lit ? `<circle cx="${R}" cy="125" r="24" fill="rgba(255,77,61,.22)"/>` : "") + g(SYM.place("led", R, 95, 90)) + SYM.label(R + 16, 125, "D1", { anchor: "start", weight: 700 }));
+  } else {
+    s += part("lamp", [224, 90, 62, 70], (lit ? `<circle cx="${R}" cy="125" r="24" fill="rgba(242,183,5,.45)"/>` : "") + g(SYM.place("lamp", R, 95, 90)) + SYM.label(R + 18, 125, "L1", { anchor: "start", weight: 700 }));
+  }
+  $("sch").innerHTML = s;
+}
+
+function hint() {
+  const h = $("hint");
+  let cls = "hint", t;
+  if (focus) t = INFO[focus];
+  else if (flowing()) { cls += " ok"; t = `<b>光った!</b> + から出た電気が スイッチ → ${st.mode === "led" ? "抵抗 → LED" : "ランプ"} → − と<b>ひとまわり</b>している。${st.rev ? "電池が逆なので流れる向きも逆。ランプは気にしない。" : ""}`; }
+  else if (st.on && st.cut) { cls += " warn"; t = "<b>線が切れていると、スイッチを入れても流れない。</b>電気は + から出て − に戻る「ひとまわりの輪(閉回路)」になっていないと流れない。"; }
+  else if (st.on && st.mode === "led" && st.rev) { cls += " warn"; t = "<b>LED は一方通行。</b>回路図の三角の向き(上 → 下)と、電池の + − が逆だと光らない。ランプに切りかえて同じことをしてみよう。"; }
+  else t = "<b>スイッチを入れてみよう。</b>部品にマウスを乗せると、もう片方の図の<b>同じ部品</b>が黄色く光る。図面は実物の「つながり」だけを抜き出した絵。";
+  h.className = cls; h.innerHTML = t;
+  $("found").innerHTML = `<b>発見 ${Object.values(found).filter(Boolean).length} / 4</b>` + Object.keys(FOUND_LABEL).map((k) => `<span class="f${found[k] ? " got" : ""}" data-k="${k}">${found[k] ? "✓ " : ""}${FOUND_LABEL[k]}</span>`).join("");
+}
+function render() {
+  if (flowing()) { found.lit = true; if (st.mode === "lamp" && st.rev) found.lampRev = true; }
+  if (st.on && st.cut) found.cut = true;
+  if (st.on && !st.cut && st.mode === "led" && st.rev) found.ledRev = true;
+  real(); sch(); hint();
+  $("sw").textContent = st.on ? "スイッチを切る" : "スイッチを入れる"; $("sw").setAttribute("aria-pressed", String(st.on));
+  $("cut").setAttribute("aria-pressed", String(st.cut)); $("cut").textContent = st.cut ? "✂ 線をつなぐ" : "✂ 線を切る";
+  $("rev").setAttribute("aria-pressed", String(st.rev));
+  document.body.dataset.lit = String(flowing());
+  publish({ ...st, found });
+}
+$("sw").addEventListener("click", () => { st.on = !st.on; render(); });
+$("cut").addEventListener("click", () => { st.cut = !st.cut; render(); });
+$("rev").addEventListener("click", () => { st.rev = !st.rev; render(); });
+segment($("mode"), (v) => { st.mode = v; if (focus === "lamp" || focus === "led" || focus === "res") focus = null; render(); });
+for (const id of ["real", "sch"]) {
+  const svg = $(id);
+  svg.addEventListener("pointerover", (e) => { const p = e.target.closest("[data-part]"); const n = p ? p.dataset.part : null; if (n !== focus) { focus = n; real(); sch(); hint(); } });
+  svg.addEventListener("pointerleave", () => { focus = null; real(); sch(); hint(); });
+  svg.addEventListener("click", (e) => { const p = e.target.closest("[data-part]"); if (p && p.dataset.part === "sw") { st.on = !st.on; render(); } });
+}
+onRestore((s) => {
+  for (const k of ["on", "cut", "rev"]) if (typeof s[k] === "boolean") st[k] = s[k];
+  if (s.mode === "lamp" || s.mode === "led") { st.mode = s.mode; setSeg($("mode"), s.mode); }
+  if (s.found) for (const k of Object.keys(found)) found[k] = !!s.found[k];
+  render();
+});
+render(); ready();
+</script></body></html>

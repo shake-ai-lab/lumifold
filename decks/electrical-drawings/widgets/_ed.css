@@ -1,0 +1,52 @@
+/* electrical-drawings のウィジェット共通(方眼紙と青図のテーマ)。1em = iframe の幅 / --cols(各ウィジェットが決める)。
+   青 = さわれる所・選択、赤橙 = 電気が来ている所、黄 = 強調、緑 = 正解・GND */
+:root {
+  --paper: #FCFBF7; --card: #FFFFFF; --raise: #EDF2F7; --line: #C9D3DE; --ink: #1E2733; --sub: #5B6676; --mute: #8A94A3;
+  --blue: #1E6BB8; --navy: #17375E; --red: #D9480F; --amber: #F2B705; --green: #2F8F5B; --violet: #8A5CC2;
+  --blue-soft: rgba(30, 107, 184, .12); --red-soft: rgba(217, 72, 15, .12); --amber-soft: rgba(242, 183, 5, .28); --green-soft: rgba(47, 143, 91, .14);
+  --grid: rgba(30, 107, 184, .07);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; }
+body { color: var(--ink); font: 400 calc(100vw / var(--cols, 40)) / 1.45 "BIZ UDPGothic", "Yu Gothic UI", "Meiryo UI", sans-serif; overflow: hidden; }
+.frame { height: 100%; display: flex; flex-direction: column; gap: .55em; padding: .7em .85em .8em; border: 2px solid var(--blue); border-radius: .6em;
+  background-color: var(--paper); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 1em 1em; }
+header { display: flex; align-items: center; gap: .6em; min-height: 1.5em; }
+.tag { font-size: .8em; font-weight: 700; letter-spacing: .06em; color: var(--blue); white-space: nowrap; }
+.tag::before { content: ""; display: inline-block; width: .6em; height: .6em; margin-right: .45em; border-radius: 50%; background: currentColor; vertical-align: .02em; }
+.chip { margin-left: auto; font-size: .72em; padding: .12em .7em; border-radius: 999px; background: var(--raise); color: var(--sub); white-space: nowrap; }
+.num, output { font-family: Consolas, "Cascadia Mono", monospace; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn { border: 1.5px solid var(--line); background: var(--card); border-radius: 999px; padding: .25em .9em; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.btn:hover { border-color: var(--blue); color: var(--blue); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { filter: brightness(1.1); color: #fff; }
+.btn[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+.btn:disabled { opacity: .45; cursor: default; }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: .22em .8em; font-size: .82em; color: var(--sub); white-space: nowrap; }
+.seg button + button { border-left: 1.5px solid var(--line); }
+.seg button.on { background: var(--blue); color: #fff; font-weight: 700; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .45em .8em; }
+label { display: inline-flex; align-items: center; gap: .45em; font-size: .85em; color: var(--sub); white-space: nowrap; }
+label b { color: var(--ink); }
+input[type=range] { width: 8em; accent-color: var(--blue); margin: 0; }
+output { color: var(--ink); min-width: 3.2em; display: inline-block; font-weight: 700; }
+.tile { background: var(--card); border: 1.5px solid var(--line); border-radius: .45em; padding: .3em .6em .35em; min-width: 0; }
+.tile .k { font-size: .72em; color: var(--sub); white-space: nowrap; }
+.tile .v { font-size: 1.25em; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hint { font-size: .85em; color: var(--ink); line-height: 1.55; background: var(--card); border-left: .3em solid var(--blue); border-radius: .3em; padding: .4em .7em; }
+.hint b { color: var(--blue); }
+.hint.warn { border-left-color: var(--red); }
+.hint.warn b { color: var(--red); }
+.hint.ok { border-left-color: var(--green); }
+.hint.ok b { color: var(--green); }
+.red { color: var(--red); } .blue { color: var(--blue); } .green { color: var(--green); } .sub { color: var(--sub); } .amber { color: #B98900; }
+svg { display: block; }
+svg text { font-family: "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", sans-serif; }
+.panel { background: var(--card); border: 1.5px solid var(--line); border-radius: .5em; min-width: 0; min-height: 0; position: relative; }
+.panel > .ptitle { position: absolute; left: .55em; top: .3em; font-size: .72em; font-weight: 700; color: var(--sub); letter-spacing: .05em; }
+@keyframes flow { to { stroke-dashoffset: -16; } }
+.flow { stroke-dasharray: 2 14; stroke-linecap: round; animation: flow .6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .flow { animation: none; } }

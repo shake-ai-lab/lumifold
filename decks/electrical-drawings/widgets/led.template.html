@@ -1,0 +1,148 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LED と抵抗</title>
+<style>/*INC:_ed.css*/
+:root { --cols: 40; }
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.55fr 1fr; gap: .6em; }
+.main .panel svg { width: 100%; height: 100%; }
+.tiles { display: flex; flex-direction: column; gap: .4em; min-height: 0; }
+.tiles .tile { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.meter { height: .5em; border-radius: 999px; background: var(--raise); overflow: hidden; margin-top: .25em; }
+.meter i { display: block; height: 100%; width: 0; background: var(--amber); transition: width .25s; }
+.meter i.over { background: var(--red); }
+.formula { background: var(--card); border: 1.5px solid var(--line); border-radius: .45em; padding: .3em .7em; font-size: .9em; display: flex; flex-wrap: wrap; align-items: baseline; gap: .2em .5em; }
+.formula .m { font-family: "Cambria Math", Cambria, "Times New Roman", serif; font-size: 1.15em; }
+.formula .k { color: var(--sub); font-size: .85em; }
+.hint { min-height: 3.3em; }
+.controls label { min-width: 0; }
+.ctl { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .2em .6em; font-size: .85em; color: var(--sub); }
+.ctl input[type=range] { width: 100%; }
+.ctl output { text-align: right; min-width: 4.6em; }
+.row2 { display: flex; flex-wrap: wrap; gap: .45em .6em; align-items: center; }
+.seg button[data-v="red"].on { background: #D63B2F; } .seg button[data-v="yellow"].on { background: #C99A00; } .seg button[data-v="green"].on { background: #2F8F5B; }
+.seg button[data-v="blue"].on { background: #2459C9; } .seg button[data-v="white"].on { background: #6B7684; }
+.burnt { font-size: .78em; color: var(--sub); margin-left: auto; white-space: nowrap; }
+@keyframes puff { 0% { opacity: .0; transform: translate(0, 0) scale(.6); } 20% { opacity: .75; } 100% { opacity: 0; transform: translate(6px, -38px) scale(1.6); } }
+.smoke circle { fill: #8A94A3; animation: puff 2.2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.smoke circle:nth-child(2) { animation-delay: .7s; } .smoke circle:nth-child(3) { animation-delay: 1.4s; }
+@media (prefers-reduced-motion: reduce) { .smoke circle { animation: none; opacity: .5; } }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 04 · LED と抵抗</span><span class="chip">オームの法則 I = V ÷ R</span></header>
+<div class="main">
+  <div class="panel"><svg id="sch" viewBox="0 0 340 250" aria-label="LED の回路図"></svg></div>
+  <div class="tiles">
+    <div class="tile"><div class="k">LED に流れる電流 I</div><div class="v num" id="vi"></div><div class="meter"><i id="mi"></i></div></div>
+    <div class="tile"><div class="k">抵抗の発熱 P = I² × R</div><div class="v num" id="vp"></div><div class="meter"><i id="mp"></i></div></div>
+    <div class="tile"><div class="k">LED の状態</div><div class="v" id="vs"></div></div>
+  </div>
+</div>
+<div class="formula" id="formula"></div>
+<div class="hint" id="hint"></div>
+<div class="ctl">
+  <span>電源 <b>V</b></span><input type="range" id="v" min="3" max="24" step="1" value="10" aria-label="電源の電圧"><output id="vv"></output>
+  <span>抵抗 <b>R</b></span><input type="range" id="r" min="0" max="16" step="1" value="8" aria-label="抵抗の値"><output id="rv"></output>
+</div>
+<div class="row2">
+  <div class="seg" id="color"><button data-v="red" class="on" aria-pressed="true">赤</button><button data-v="yellow" aria-pressed="false">黄</button><button data-v="green" aria-pressed="false">緑</button><button data-v="blue" aria-pressed="false">青</button><button data-v="white" aria-pressed="false">白</button></div>
+  <button class="btn primary" id="rec">おすすめの抵抗にする</button>
+  <button class="btn" id="swap" hidden>LED を交換する</button>
+  <span class="burnt" id="burnt"></span>
+</div>
+</div>
+<script>"use strict";
+/*INC:_ed.js*/
+/*INC:_sym.js*/
+// 抵抗は E6 系列(10・15・22・33・47・68)。0 は「抵抗なし」
+const RS = [0, 10, 22, 47, 68, 100, 150, 220, 330, 470, 680, 1000, 1500, 2200, 3300, 4700, 10000];
+const LEDS = { red: { name: "赤", vf: 2.0, c: "#FF3B2F" }, yellow: { name: "黄", vf: 2.1, c: "#FFC400" }, green: { name: "緑", vf: 2.2, c: "#2FD06F" },
+  blue: { name: "青", vf: 3.2, c: "#3C7BFF" }, white: { name: "白", vf: 3.2, c: "#E8F0FF" } };
+const RATED = 20, ABSMAX = 30, TARGET = 10, PMAX = 250; // mA, mA, mA, mW(1/4 W 抵抗)
+let V = 5, ri = 8, color = "red", burnt = false, burntCount = 0;
+// 電圧は 0.5 V 刻み(スライダーは 1 刻みを半分にして使う)
+const fmtR = (r) => (r === 0 ? "なし(0 Ω)" : r >= 1000 ? `${r / 1000} kΩ` : `${r} Ω`);
+const fmtV = (v) => `${v.toFixed(1)} V`;
+function calc() {
+  const vf = LEDS[color].vf, R = RS[ri];
+  if (burnt || V <= vf) return { I: 0, P: 0, vf, R, short: false };
+  if (R === 0) return { I: Infinity, P: 0, vf, R, short: true };
+  const I = ((V - vf) / R) * 1000; // mA
+  return { I, P: (I / 1000) ** 2 * R * 1000, vf, R, short: false };
+}
+function recommend() {
+  const vf = LEDS[color].vf;
+  if (V <= vf) return null;
+  const exact = (V - vf) / (TARGET / 1000);
+  const k = RS.findIndex((r) => r >= exact);
+  return { exact, k: k < 0 ? RS.length - 1 : k };
+}
+function sch(c) {
+  const led = LEDS[color], lit = !burnt && c.I > 0, b = lit ? Math.min(1, c.I / RATED) : 0;
+  const L = 50, Rx = 262, T = 50, B = 210;
+  let s = "";
+  const wiresOn = lit ? ' style="color:var(--red)"' : "";
+  s += `<g${wiresOn}>` + SYM.wire([[L, 90], [L, T], [130, T]]) + SYM.wire([[190, T], [Rx, T], [Rx, 100]]) + SYM.wire([[Rx, 160], [Rx, B], [200, B]]) + SYM.wire([[140, B], [L, B], [L, 150]]) + `</g>`;
+  if (lit) {
+    const dur = Math.max(0.25, Math.min(3, 2.4 / (c.I / TARGET)));
+    s += `<g style="color:#FFB000">` + [[[L, 90], [L, T], [130, T]], [[190, T], [Rx, T], [Rx, 100]], [[Rx, 160], [Rx, B], [200, B]], [[140, B], [L, B], [L, 150]]]
+      .map((r) => SYM.wire(r, ` class="flow" style="stroke-width:3;animation-duration:${dur.toFixed(2)}s"`)).join("") + `</g>`;
+  }
+  s += SYM.place("batt", L, 90, 90) + SYM.label(L - 14, 112, "V", { anchor: "end", weight: 700 }) + SYM.label(L - 14, 130, fmtV(V), { anchor: "end", size: 12 });
+  if (c.R === 0) s += `<g style="color:var(--red)">${SYM.wire([[130, T], [190, T]])}</g>` + SYM.label(160, T - 18, "抵抗なし!", { weight: 700, color: "var(--red)" });
+  else s += SYM.place("res", 130, T) + SYM.label(160, T - 20, "R  " + fmtR(c.R), { weight: 700 });
+  // LED(焼けたら黒く、煙)
+  if (lit) s += `<circle cx="${Rx}" cy="130" r="${18 + 16 * b}" fill="${led.c}" opacity="${(0.15 + 0.5 * b).toFixed(2)}"/>`;
+  s += `<g style="color:${burnt ? "#3B4048" : "var(--ink)"}">${SYM.place("led", Rx, 100, 90)}</g>`;
+  if (lit) s += `<path d="M${Rx - 10} 122L${Rx} 138L${Rx + 10} 122Z" fill="${led.c}" opacity="${(0.4 + 0.6 * b).toFixed(2)}"/>`;
+  s += SYM.label(Rx - 16, 124, `LED(${led.name})`, { anchor: "end", weight: 700 }) + SYM.label(Rx - 16, 141, `Vf ${fmtV(led.vf)}`, { anchor: "end", size: 12 });
+  if (burnt) s += `<g class="smoke"><circle cx="${Rx + 2}" cy="118" r="6"/><circle cx="${Rx - 4}" cy="120" r="5"/><circle cx="${Rx + 6}" cy="122" r="5"/></g>`
+    + SYM.label(Rx + 16, 84, "焼けた!", { anchor: "start", weight: 700, color: "var(--red)" });
+  // 電流計(直列に入れる)
+  s += SYM.place("meter", 140, B, 0, { letter: "A" }) + SYM.label(170, B + 26, "I = " + (c.I === Infinity ? "∞" : c.I.toFixed(1) + " mA"), { weight: 700, color: lit ? "var(--red)" : "var(--sub)" });
+  // 電圧の分かれ方
+  if (lit) s += SYM.label(160, T + 24, `ここで ${fmtV(V - led.vf)}`, { size: 11, color: "var(--sub)" }) + SYM.label(Rx - 16, 160, `ここで ${fmtV(led.vf)}`, { size: 11, color: "var(--sub)", anchor: "end" });
+  $("sch").innerHTML = s;
+}
+function render() {
+  const c = calc(), led = LEDS[color];
+  if (!burnt && (c.short || c.I > ABSMAX)) { burnt = true; burntCount++; }
+  const d = burnt ? { ...c, I: 0, P: 0 } : c;
+  sch(d);
+  $("vv").textContent = fmtV(V); $("rv").textContent = fmtR(RS[ri]); $("v").value = V * 2; $("r").value = ri;
+  $("vi").textContent = burnt ? "0 mA" : `${d.I.toFixed(1)} mA`;
+  $("mi").style.width = `${Math.min(100, (d.I / ABSMAX) * 100)}%`; $("mi").className = d.I > RATED ? "over" : "";
+  $("vp").textContent = `${d.P.toFixed(0)} mW`;
+  $("mp").style.width = `${Math.min(100, (d.P / (PMAX * 1.4)) * 100)}%`; $("mp").className = d.P > PMAX ? "over" : "";
+  const state = burnt ? ["焼けた", "red"] : d.I === 0 ? ["光らない", "sub"] : d.I > RATED ? ["明るすぎ(定格オーバー)", "red"] : d.I < 2 ? ["かすかに光る", "amber"] : ["ちょうどよい", "green"];
+  $("vs").innerHTML = `<span class="${state[1]}">${state[0]}</span>`;
+  const rec = recommend();
+  $("formula").innerHTML = burnt || c.R === 0
+    ? `<span class="m">I = (V − V<sub>f</sub>) ÷ R</span><span class="k">R が 0 だと割り算できないほど大きな電流になる</span>`
+    : V <= led.vf ? `<span class="m">V ≤ V<sub>f</sub></span><span class="k">電源の電圧が LED の V<sub>f</sub>(${fmtV(led.vf)})以下なので、ほとんど流れない</span>`
+    : `<span class="m">I = (V − V<sub>f</sub>) ÷ R = (${V} − ${led.vf.toFixed(1)}) ÷ ${c.R} = <b>${(c.I / 1000).toFixed(4)} A</b></span><span class="k">= ${c.I.toFixed(1)} mA</span>`;
+  const h = $("hint");
+  let cls = "hint", t;
+  if (burnt) { cls += " warn"; t = c.short ? "<b>抵抗なしでつなぐと、LED は一瞬で焼ける。</b>LED は電流を自分で制限できない。だから回路図では LED の隣にほぼ必ず抵抗がいる。" : `<b>${ABSMAX} mA を超えて焼けた。</b>電流を減らすには抵抗を大きくする。「LED を交換する」で直そう。`; }
+  else if (V <= led.vf) t = `<b>電源 ${fmtV(V)} では${led.name}の LED は光らない。</b>LED は V<sub>f</sub>(順方向電圧)より高い電圧をかけてはじめて流れる。`;
+  else if (d.P > PMAX) { cls += " warn"; t = `<b>抵抗が ${d.P.toFixed(0)} mW で熱くなりすぎ。</b>よく使う抵抗は 1/4 W(250 mW)まで。部品表の「定格電力」も大事な値。`; }
+  else if (d.I > RATED) { cls += " warn"; t = `<b>${RATED} mA を超えると、明るいけれど寿命が縮む。</b>ふつうの LED は 5〜${RATED} mA で使う。抵抗をもう少し大きく。`; }
+  else if (d.I < 2) t = "<b>電流が少なくて、かすかにしか光らない。</b>抵抗を小さくすると明るくなる。";
+  else { cls += " ok"; t = `<b>ちょうどよい明るさ。</b>電源の ${fmtV(V)} のうち ${fmtV(led.vf)} を LED が、残りの ${fmtV(V - led.vf)} を抵抗が受け持っている。`; }
+  if (!burnt && rec) t += ` <span class="sub">(${TARGET} mA にするなら ${(V - led.vf).toFixed(1)} ÷ 0.01 = ${rec.exact.toFixed(0)} Ω → ${fmtR(RS[rec.k])})</span>`;
+  h.className = cls; h.innerHTML = t;
+  $("swap").hidden = !burnt; $("rec").disabled = burnt || !rec;
+  $("burnt").textContent = burntCount ? `焼いた LED: ${burntCount} 個` : "";
+  document.body.dataset.state = burnt ? "burnt" : state[0];
+  publish({ V, ri, color, burnt, burntCount });
+}
+$("v").addEventListener("input", (e) => { V = +e.target.value / 2; render(); });
+$("r").addEventListener("input", (e) => { ri = +e.target.value; render(); });
+segment($("color"), (v) => { color = v; render(); });
+$("rec").addEventListener("click", () => { const r = recommend(); if (r) { ri = r.k; render(); } });
+$("swap").addEventListener("click", () => { burnt = false; if (calc().short || calc().I > ABSMAX) ri = Math.max(ri, recommend()?.k ?? 8); render(); });
+onRestore((s) => {
+  if (Number.isFinite(s.V)) V = Math.max(1.5, Math.min(12, Math.round(s.V * 2) / 2));
+  if (Number.isFinite(s.ri)) ri = Math.max(0, Math.min(RS.length - 1, s.ri | 0));
+  if (LEDS[s.color]) { color = s.color; setSeg($("color"), color); }
+  burnt = !!s.burnt; burntCount = Number.isFinite(s.burntCount) ? s.burntCount | 0 : 0;
+  render();
+});
+render(); ready();
+</script></body></html>

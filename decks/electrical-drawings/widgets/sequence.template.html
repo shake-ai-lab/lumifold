@@ -1,0 +1,240 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>シーケンス回路: 自己保持とインターロック</title>
+<style>/*INC:_ed.css*/
+:root { --cols: 40; }
+.top { display: flex; align-items: center; gap: .6em; flex-wrap: wrap; }
+.ladder { flex: 1; min-height: 0; }
+.ladder svg { width: 100%; height: 100%; }
+.sch { color: var(--ink); }
+.sch .live { color: var(--red); }
+.sch .ghost { color: var(--mute); }
+.sch .pbhit { cursor: pointer; fill: transparent; }
+.machine { display: flex; align-items: center; gap: .9em; background: var(--navy); border-radius: .5em; padding: .45em .8em; color: #fff; }
+.machine .lbl { font-size: .7em; color: #9FB0C4; letter-spacing: .08em; writing-mode: vertical-rl; }
+.pbs { display: flex; gap: .7em; }
+.pb { width: 3.9em; height: 3.9em; white-space: nowrap; border-radius: 50%; border: .25em solid #C9D3DE; font-weight: 700; font-size: .78em; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;
+  box-shadow: 0 .25em 0 rgba(0, 0, 0, .35); touch-action: none; user-select: none; transition: transform .05s, box-shadow .05s; }
+.pb small { font-size: .72em; font-weight: 400; opacity: .85; }
+.pb.down { transform: translateY(.2em); box-shadow: 0 .05em 0 rgba(0, 0, 0, .35); filter: brightness(.88); }
+.pb.red { background: #D63B2F; } .pb.green { background: #2F8F5B; } .pb.blue { background: #2459C9; }
+.pb.both { width: auto; border-radius: .8em; padding: 0 .7em; background: #5B6676; font-size: .72em; }
+.ind { margin-left: auto; display: flex; align-items: center; gap: .8em; }
+.lampv { display: flex; flex-direction: column; align-items: center; gap: .15em; font-size: .72em; color: #C9D3DE; }
+.lampv i { width: 1.6em; height: 1.6em; border-radius: 50%; border: .15em solid #5B6676; background: #2B3542; }
+.lampv i.on.r { background: #FF4D3D; box-shadow: 0 0 .8em #FF4D3D; } .lampv i.on.g { background: #3BD27A; box-shadow: 0 0 .8em #3BD27A; }
+.motor { display: flex; align-items: center; gap: .45em; font-size: .8em; }
+.motor svg { width: 2.6em; height: 2.6em; }
+@keyframes cw { to { transform: rotate(360deg); } } @keyframes ccw { to { transform: rotate(-360deg); } }
+.fan { transform-origin: 20px 20px; } .fan.cw { animation: cw .8s linear infinite; } .fan.ccw { animation: ccw .8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .fan.cw, .fan.ccw { animation: none; } }
+.found { display: flex; flex-wrap: wrap; gap: .3em .45em; align-items: center; font-size: .74em; color: var(--sub); }
+.found span.f { padding: .08em .6em; border-radius: 999px; border: 1.5px dashed var(--line); background: var(--card); white-space: nowrap; }
+.found span.f.got { border-style: solid; border-color: var(--green); color: var(--green); font-weight: 700; background: var(--green-soft); }
+.hint { min-height: 4.3em; }
+.log { font-size: .78em; color: var(--sub); margin-top: .2em; }
+.trip { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: .5em; background: rgba(217, 72, 15, .12); border-radius: .5em; }
+.trip b { font-size: 1.5em; color: var(--red); background: var(--card); padding: .1em .7em; border-radius: .3em; border: 2px solid var(--red); }
+body.tripped .trip { display: flex; }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 05 · シーケンス回路</span><span class="chip">押すと動く・離しても動く</span></header>
+<div class="top">
+  <div class="seg" id="mode"><button data-v="hold" class="on" aria-pressed="true">自己保持</button><button data-v="lock" aria-pressed="false">インターロック</button></div>
+  <button class="btn" id="opt" aria-pressed="true"></button>
+</div>
+<div class="panel ladder"><svg id="sch" class="sch" viewBox="0 0 600 278" aria-label="シーケンス図(展開接続図)"></svg>
+  <div class="trip"><b>短絡! ブレーカが落ちた</b><button class="btn primary" id="reset">ブレーカを戻す</button></div></div>
+<div class="machine"><span class="lbl">操作盤</span><div class="pbs" id="pbs"></div><div class="ind" id="ind"></div></div>
+<div class="found" id="found"></div>
+<div class="hint" id="hint"></div>
+</div>
+<script>"use strict";
+/*INC:_ed.js*/
+/*INC:_sym.js*/
+let mode = "hold", opt = { hold: true, lock: true }, tripped = false;
+const pressed = {}, coil = {}, log = [];
+const tasks = { hold: { keep: false, stop: false, nohold: false }, lock: { fwd: false, block: false, short: false } };
+const TASK_LABEL = { keep: "離しても回り続ける", stop: "停止で止める", nohold: "保持の線を外して試す", fwd: "正転で回す", block: "正転中に逆転を押す", short: "インターロックなしで同時押し" };
+
+// ---- 回路の定義。c = 接点(n の 2 点を、閉じていればつなぐ)、load = コイル・ランプ(n から N へ)
+function build() {
+  const W = (n, ...pts) => ({ t: "w", n, pts }), parts = [];
+  if (mode === "hold") {
+    const h = opt.hold;
+    parts.push(
+      { t: "c", a: false, by: "PB1", n: ["L", "a"], x: 80, y: 80, name: "PB1", sub: "停止", pb: true },
+      { t: "c", a: true, by: "PB2", n: ["a", "b"], x: 200, y: 80, name: "PB2", sub: "起動", pb: true },
+      { t: "load", id: "MC", kind: "coil", n: "b", x: 440, y: 80, name: "MC" },
+      { t: "c", a: true, by: "MC", n: ["L", "r"], x: 200, y: 190, name: "MC" },
+      { t: "load", id: "RL", kind: "lamp", n: "r", x: 440, y: 190, name: "RL", sub: "運転", glow: "rgba(255,77,61,.35)" },
+      { t: "c", a: false, by: "MC", n: ["L", "g"], x: 200, y: 240, name: "MC" },
+      { t: "load", id: "GL", kind: "lamp", n: "g", x: 440, y: 240, name: "GL", sub: "停止", glow: "rgba(59,210,122,.35)" },
+      W("L", [40, 80], [80, 80]), W("a", [140, 80], [200, 80]), W("b", [260, 80], [440, 80]), W("N", [500, 80], [560, 80]),
+      W("L", [40, 190], [200, 190]), W("r", [260, 190], [440, 190]), W("N", [500, 190], [560, 190]),
+      W("L", [40, 240], [200, 240]), W("g", [260, 240], [440, 240]), W("N", [500, 240], [560, 240]),
+    );
+    if (h) parts.push({ t: "c", a: true, by: "MC", n: ["a", "b"], x: 200, y: 140, name: "MC", sub: "自己保持", tag: true },
+      W("a", [170, 80], [170, 140], [200, 140]), W("b", [260, 140], [300, 140], [300, 80]), { t: "dot", n: "a", x: 170, y: 80 }, { t: "dot", n: "b", x: 300, y: 80 });
+    else parts.push({ t: "ghost", pts: [[170, 80], [170, 140], [300, 140], [300, 80]], text: "自己保持の線を外した", x: 235, y: 158 });
+    return { view: [600, 278], bus: [50, 268], lines: [[80, "1"], [190, "2"], [240, "3"]], coils: ["MC"], parts,
+      buttons: [{ id: "PB1", label: "停止", color: "red" }, { id: "PB2", label: "起動", color: "green" }] };
+  }
+  const il = opt.lock;
+  parts.push(
+    { t: "c", a: false, by: "PB0", n: ["L", "s"], x: 70, y: 70, name: "PB0", sub: "停止", pb: true },
+    { t: "c", a: true, by: "PB1", n: ["s", "f"], x: 190, y: 70, name: "PB1", sub: "正転", pb: true },
+    { t: "c", a: true, by: "MC1", n: ["s", "f"], x: 190, y: 120, name: "MC1", sub: "保持" },
+    { t: "load", id: "MC1", kind: "coil", n: "f2", x: 450, y: 70, name: "MC1", sub: "正転" },
+    { t: "c", a: true, by: "PB2", n: ["s", "r"], x: 190, y: 200, name: "PB2", sub: "逆転", pb: true },
+    { t: "c", a: true, by: "MC2", n: ["s", "r"], x: 190, y: 250, name: "MC2", sub: "保持" },
+    { t: "load", id: "MC2", kind: "coil", n: "r2", x: 450, y: 200, name: "MC2", sub: "逆転" },
+    W("L", [40, 70], [70, 70]), W("s", [130, 70], [190, 70]), W("s", [160, 70], [160, 250], [190, 250]), W("s", [160, 120], [190, 120]), W("s", [160, 200], [190, 200]),
+    W("f", [250, 70], [330, 70]), W("f", [250, 120], [290, 120], [290, 70]), W("N", [510, 70], [560, 70]),
+    W("r", [250, 200], [330, 200]), W("r", [250, 250], [290, 250], [290, 200]), W("N", [510, 200], [560, 200]),
+    { t: "dot", n: "s", x: 160, y: 70 }, { t: "dot", n: "s", x: 160, y: 120 }, { t: "dot", n: "s", x: 160, y: 200 }, { t: "dot", n: "f", x: 290, y: 70 }, { t: "dot", n: "r", x: 290, y: 200 },
+  );
+  if (il) parts.push({ t: "c", a: false, by: "MC2", n: ["f", "f2"], x: 330, y: 70, name: "MC2", sub: "インターロック", tag: true }, W("f2", [390, 70], [450, 70]),
+    { t: "c", a: false, by: "MC1", n: ["r", "r2"], x: 330, y: 200, name: "MC1", sub: "インターロック", tag: true }, W("r2", [390, 200], [450, 200]));
+  else parts.push(W("f2", [330, 70], [450, 70]), W("r2", [330, 200], [450, 200]), { t: "link", n: ["f", "f2"] }, { t: "link", n: ["r", "r2"] },
+    { t: "ghost", pts: [], text: "インターロックなし", x: 360, y: 52 }, { t: "ghost", pts: [], text: "インターロックなし", x: 360, y: 182 });
+  return { view: [600, 278], bus: [40, 268], lines: [[70, "1"], [200, "2"]], coils: ["MC1", "MC2"], parts,
+    buttons: [{ id: "PB0", label: "停止", color: "red" }, { id: "PB1", label: "正転", color: "green" }, { id: "PB2", label: "逆転", color: "blue" }, { id: "BOTH", label: "正転と逆転を同時に", color: "both" }] };
+}
+let C = build();
+const actuated = (by) => (by.startsWith("PB") ? !!pressed[by] : !!coil[by]);
+const closed = (p) => (p.a ? actuated(p.by) : !actuated(p.by));
+function liveNodes() {
+  const live = new Set();
+  if (tripped) return live;
+  live.add("L");
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const p of C.parts) {
+      const link = p.t === "link" || (p.t === "c" && closed(p));
+      if (!link) continue;
+      const [x, y] = p.n;
+      if (live.has(x) !== live.has(y)) { live.add(x); live.add(y); grew = true; }
+    }
+  }
+  return live;
+}
+// コイルを 1 つずつ順に決める(同時に押したときは先に決まったほうが勝つ)
+function solve() {
+  for (let k = 0; k < 8; k++) {
+    let changed = false;
+    for (const id of C.coils) {
+      const load = C.parts.find((p) => p.t === "load" && p.id === id);
+      const on = liveNodes().has(load.n);
+      if (!!coil[id] !== on) { coil[id] = on; changed = true; }
+    }
+    if (!changed) break;
+  }
+  if (mode === "lock" && coil.MC1 && coil.MC2) { tripped = true; tasks.lock.short = true; coil.MC1 = coil.MC2 = false; addLog("MC1 と MC2 が同時に入った → 短絡、ブレーカが落ちた"); }
+}
+function addLog(t) { log.unshift(t); log.length = Math.min(log.length, 3); }
+
+function render() {
+  const live = liveNodes();
+  const [vw, vh] = C.view;
+  $("sch").setAttribute("viewBox", `0 0 ${vw} ${vh}`);
+  let s = "";
+  const top = C.bus[0] - 22;
+  s += `<g${live.has("L") ? ' class="live"' : ""}>${SYM.wire([[40, C.bus[0] - 10], [40, C.bus[1]]])}</g>` + SYM.wire([[560, C.bus[0] - 10], [560, C.bus[1]]]);
+  s += SYM.label(40, top, "P(+24 V)", { size: 12, weight: 700 }) + SYM.label(560, top, "N(0 V)", { size: 12, weight: 700 });
+  for (const [y, n] of C.lines) s += SYM.label(18, y, n, { size: 12, color: "var(--sub)" });
+  for (const p of C.parts) {
+    if (p.t === "w") s += `<g${live.has(p.n) ? ' class="live"' : ""}>${SYM.wire(p.pts)}</g>`;
+    else if (p.t === "dot") s += `<g${live.has(p.n) ? ' class="live"' : ""}>${SYM.dot(p.x, p.y)}</g>`;
+    else if (p.t === "ghost") s += `<g class="ghost">` + (p.pts.length ? SYM.wire(p.pts, ' stroke-dasharray="5 5"') : "") + SYM.label(p.x, p.y, p.text, { size: 11, color: "var(--mute)" }) + `</g>`;
+  }
+  for (const p of C.parts) {
+    if (p.t === "c") {
+      const on = actuated(p.by), hot = closed(p) && live.has(p.n[0]) && !tripped;
+      const kind = p.pb ? (p.a ? "pba" : "pbb") : p.a ? "swa" : "swb";
+      s += `<g${hot ? ' class="live"' : ""}>${SYM.place(kind, p.x, p.y, 0, { on })}</g>`;
+      const kindText = (p.a ? "a 接点" : "b 接点") + (p.sub ? "・" + p.sub : ""), ly = p.y + (p.a ? 18 : 24);
+      if (p.pb) s += SYM.label(p.x + 30, p.y - 40, p.name, { size: 12, weight: 700 }) + SYM.label(p.x + 30, ly, kindText, { size: 10, color: "var(--sub)" });
+      else s += `<text x="${p.x + 30}" y="${ly}" font-size="10" text-anchor="middle" dominant-baseline="central" fill="${p.tag ? "#B98900" : "var(--sub)"}"${p.tag ? ' font-weight="700"' : ""}><tspan font-size="12" font-weight="700" fill="var(--ink)">${p.name}</tspan> ${kindText}</text>`;
+      if (p.pb) s += `<rect class="pbhit" data-pb="${p.by}" x="${p.x}" y="${p.y - 34}" width="60" height="46"/>`;
+    } else if (p.t === "load") {
+      const on = live.has(p.n);
+      if (p.kind === "coil") s += (on ? `<rect x="${p.x + 18}" y="${p.y - 8}" width="24" height="16" fill="var(--amber-soft)"/>` : "") + `<g${on ? ' class="live"' : ""}>${SYM.place("coil", p.x, p.y)}</g>`;
+      else s += (on ? `<circle cx="${p.x + 30}" cy="${p.y}" r="17" fill="${p.glow}"/>` : "") + `<g${on ? ' class="live"' : ""}>${SYM.place("lamp", p.x, p.y)}</g>`;
+      s += SYM.label(p.x + 30, p.y - 22, p.name + (p.sub ? " " + p.sub : ""), { size: 12, weight: 700 });
+      if (p.kind === "coil") s += SYM.label(p.x + 30, p.y + 20, "コイル", { size: 10, color: "var(--sub)" });
+    }
+  }
+  $("sch").innerHTML = s;
+  // 操作盤の表示
+  const ind = $("ind");
+  if (mode === "hold") ind.innerHTML = `<div class="lampv"><i class="r${live.has("r") ? " on" : ""}"></i>RL 運転</div><div class="lampv"><i class="g${live.has("g") ? " on" : ""}"></i>GL 停止</div>`;
+  else {
+    const dir = coil.MC1 ? "cw" : coil.MC2 ? "ccw" : "";
+    ind.innerHTML = `<div class="motor"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#2B3542" stroke="#9FB0C4" stroke-width="2"/><g class="fan ${dir}"><path d="M20 20L20 6A14 14 0 0 1 32 13ZM20 20L32 27A14 14 0 0 1 20 34ZM20 20L8 27A14 14 0 0 1 8 13Z" fill="#C9D3DE" opacity=".85"/></g><circle cx="20" cy="20" r="3" fill="#fff"/></svg>`
+      + `<span>${tripped ? "停電" : coil.MC1 ? "正転 ↻" : coil.MC2 ? "逆転 ↺" : "停止"}</span></div>`;
+  }
+  document.body.classList.toggle("tripped", tripped);
+  document.body.dataset.coils = C.coils.map((c) => `${c}:${coil[c] ? 1 : 0}`).join(",");
+  $("opt").textContent = mode === "hold" ? (opt.hold ? "自己保持の線: あり" : "自己保持の線: なし") : opt.lock ? "インターロック: あり" : "インターロック: なし";
+  $("opt").setAttribute("aria-pressed", String(mode === "hold" ? opt.hold : opt.lock));
+  const tk = tasks[mode];
+  $("found").innerHTML = `<b>やってみよう ${Object.values(tk).filter(Boolean).length} / 3</b>` + Object.keys(tk).map((k) => `<span class="f${tk[k] ? " got" : ""}">${tk[k] ? "✓ " : ""}${TASK_LABEL[k]}</span>`).join("");
+  hint(live);
+  publish({ mode, opt });
+}
+function hint(live) {
+  const h = $("hint");
+  let cls = "hint", t;
+  if (tripped) { cls += " warn"; t = "<b>短絡!</b> 正転と逆転の MC が同時に入ると、モータへ行く線を入れかえる途中で電源どうしがぶつかる。インターロック(相手の b 接点)はこれを防ぐ安全の仕組み。"; }
+  else if (mode === "hold") {
+    if (coil.MC && pressed.PB2) t = "<b>PB2(起動)が閉じて、MC のコイルに電気が来た。</b>MC の a 接点(1 行目の保持・2 行目)が閉じ、b 接点(3 行目)が開く。";
+    else if (coil.MC) t = "<b>自己保持中。</b>PB2 から手を離しても、MC 自身の a 接点が PB2 の代わりに電気を通している。止めるには PB1(停止・b 接点)で輪を切る。";
+    else if (pressed.PB1) t = "<b>PB1 は b 接点。</b>押すと開いて MC への電気が切れ、保持も外れる。停止ボタンに b 接点を使うのは、線が切れても止まる側に倒れるから。";
+    else if (!opt.hold) t = "<b>保持の線がないと、PB2 を離したとたんに MC が切れる。</b>押している間だけ動く「寸動(インチング)」の回路になる。";
+    else t = "<b>PB2(起動)を押してみよう</b>(図のボタンか下の操作盤)。赤い線は「電気が来ている所」。いまは MC の b 接点を通って停止表示灯 GL だけが点いている。";
+  } else {
+    if (coil.MC1 && pressed.PB2 && opt.lock) { cls += " ok"; t = "<b>インターロックが効いている。</b>MC1 が入ると 2 行目の MC1 の b 接点が開くので、逆転を押しても MC2 には電気が来ない。"; }
+    else if (coil.MC2 && pressed.PB1 && opt.lock) { cls += " ok"; t = "<b>インターロックが効いている。</b>MC2 の b 接点(1 行目)が開いているので、正転は入らない。"; }
+    else if (coil.MC1 || coil.MC2) t = `<b>${coil.MC1 ? "正転" : "逆転"}中(自己保持)。</b>向きを変えるには、いったん PB0(停止)を押してから。${opt.lock ? "" : "インターロックがないので、いま反対のボタンを押すと…"}`;
+    else t = opt.lock ? "<b>正転か逆転を押してみよう。</b>1 行目の右の MC2 b 接点、2 行目の MC1 b 接点が「相手が入っていたら自分は入らない」見張り役。" : "<b>インターロックを外した。</b>「正転と逆転を同時に」を押してみよう(本物では絶対にやらないこと)。";
+  }
+  h.className = cls;
+  h.innerHTML = t + (log.length ? `<div class="log">${log.map((l) => "・" + l).join("<br>")}</div>` : "");
+}
+function press(id, v) {
+  if (tripped) return;
+  const before = { ...coil };
+  if (id === "BOTH") { pressed.PB1 = v; pressed.PB2 = v; } else pressed[id] = v;
+  solve();
+  const label = { PB0: "停止", PB1: mode === "hold" ? "停止" : "正転", PB2: mode === "hold" ? "起動" : "逆転", BOTH: "正転と逆転" }[id];
+  const changes = C.coils.filter((c) => !!before[c] !== !!coil[c]).map((c) => `${c} が${coil[c] ? "入った" : "切れた"}`);
+  if (!tripped) addLog(`${label}を${v ? "押した" : "離した"}` + (changes.length ? " → " + changes.join("、") : coil.MC && !v && id === "PB2" ? " → MC は入ったまま(自己保持)" : ""));
+  // やってみよう
+  if (mode === "hold") {
+    if (!v && id === "PB2" && coil.MC && opt.hold) tasks.hold.keep = true;
+    if (v && id === "PB1" && before.MC && !coil.MC) tasks.hold.stop = true;
+    if (!v && id === "PB2" && before.MC && !coil.MC && !opt.hold) tasks.hold.nohold = true;
+  } else {
+    if (coil.MC1) tasks.lock.fwd = true;
+    if (v && id === "PB2" && coil.MC1 && opt.lock) tasks.lock.block = true;
+  }
+  render();
+}
+function setupButtons() {
+  $("pbs").innerHTML = C.buttons.map((b) => `<button class="pb ${b.color}" id="b-${b.id}" aria-label="${b.label}${b.id !== "BOTH" ? "(" + b.id + ")" : ""}">${b.label}${b.id !== "BOTH" ? `<small>${b.id}</small>` : ""}</button>`).join("");
+  for (const b of C.buttons) momentary($("b-" + b.id), (v) => press(b.id, v));
+}
+// 図の中の押しボタンも押せる
+let svgDown = null;
+$("sch").addEventListener("pointerdown", (e) => { const r = e.target.closest(".pbhit"); if (!r) return; e.preventDefault(); svgDown = r.dataset.pb; $("sch").setPointerCapture(e.pointerId); press(svgDown, true); });
+for (const t of ["pointerup", "pointercancel"]) $("sch").addEventListener(t, () => { if (svgDown) { const id = svgDown; svgDown = null; press(id, false); } });
+function reset() { for (const k of Object.keys(pressed)) pressed[k] = false; for (const k of Object.keys(coil)) coil[k] = false; log.length = 0; C = build(); solve(); setupButtons(); render(); }
+segment($("mode"), (v) => { mode = v; tripped = false; reset(); });
+$("opt").addEventListener("click", () => { opt[mode] = !opt[mode]; tripped = false; reset(); });
+$("reset").addEventListener("click", () => { tripped = false; reset(); });
+onRestore((s) => {
+  if (s.mode === "hold" || s.mode === "lock") { mode = s.mode; setSeg($("mode"), mode); }
+  if (s.opt) for (const k of ["hold", "lock"]) if (typeof s.opt[k] === "boolean") opt[k] = s.opt[k];
+  reset();
+});
+reset(); ready();
+</script></body></html>

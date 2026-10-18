@@ -1,0 +1,160 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>つながりを光らせる</title>
+<style>/*INC:_ed.css*/
+:root { --cols: 40; }
+.top { display: flex; align-items: center; gap: .6em; }
+.top .score { margin-left: auto; font-size: .85em; color: var(--sub); white-space: nowrap; }
+.top .score b { color: var(--ink); }
+.board { flex: 1; min-height: 0; }
+.board svg { width: 100%; height: 100%; }
+.sch { color: var(--ink); }
+.net { cursor: pointer; }
+.net .glow { stroke: transparent; stroke-width: 11; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.net:hover { color: var(--blue); }
+.net.sel { color: var(--red); }
+.net.sel .glow { stroke: var(--amber-soft); }
+.net.sel2 { color: var(--blue); }
+.net.sel2 .glow { stroke: var(--blue-soft); }
+.hit { stroke: transparent; stroke-width: 16; fill: none; }
+.mark { font-weight: 700; }
+.info { min-height: 5.6em; }
+.pins { display: flex; flex-wrap: wrap; gap: .3em; margin-top: .3em; }
+.pins span { font-size: .85em; padding: .05em .55em; border-radius: .3em; background: var(--raise); white-space: nowrap; }
+.quiz { display: none; flex-direction: column; gap: .4em; }
+body.q .quiz { display: flex; }
+.q-text { font-size: .95em; font-weight: 700; }
+.choices { display: flex; flex-wrap: wrap; gap: .4em; }
+.choices .btn:disabled { opacity: .4; }
+.choices .btn.right, .choices .btn.wrong { opacity: 1; }
+.choices .btn.right { background: var(--green); border-color: var(--green); color: #fff; }
+.choices .btn.wrong { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 02 · つながりを光らせる</span><span class="chip">線をクリック</span></header>
+<div class="top">
+  <div class="seg" id="mode"><button data-v="explore" class="on" aria-pressed="true">探検する</button><button data-v="quiz" aria-pressed="false">問題に挑戦</button></div>
+  <span class="score" id="score"></span>
+</div>
+<div class="panel board"><svg id="sch" class="sch" viewBox="0 0 600 292" aria-label="ネットを確かめる回路図"></svg></div>
+<div class="quiz" id="quiz"><div class="q-text" id="qtext"></div><div class="choices" id="choices"></div></div>
+<div class="hint info" id="info"></div>
+</div>
+<script>"use strict";
+/*INC:_ed.js*/
+/*INC:_sym.js*/
+// ---- 回路図をネット(電気的に同じ点のまとまり)ごとに組み立てる
+const NETS = {
+  "+5V": { pins: ["R1 の上", "U1 の 1 番(VCC)", "C1 の上"], why: "<b>+5V の記号</b>から伸びる線。<b>●</b> の所で枝分かれして R1・U1・C1 に届く。" },
+  "BTN": { pins: ["R1 の下", "SW1 の上", "U1 の 2 番(IN)"], why: "左と右は線でつながっていないが、<b>同じ名前のラベル「BTN」</b>どうしはつながっている約束。" },
+  "OUT": { pins: ["U1 の 3 番(OUT)", "R2 の左"], why: "<b>★ の交差には ● がない</b>ので、縦に走る +5V の線とはつながっていない。" },
+  "LED_A": { pins: ["R2 の右", "D1 のアノード(+)"], why: "R2 と D1 の間だけの短いネット。名前がない線は、ツールが自動で番号を付けることが多い。" },
+  "GND": { pins: ["SW1 の下", "U1 の 4 番(GND)", "C1 の下", "D1 のカソード(−)"], why: "<b>GND の記号は 4 か所</b>にあるが、どれも同じ 1 本の線(0 V)。線を引く代わりに記号を置いている。" },
+};
+const wires = {}, owned = {};
+for (const n of Object.keys(NETS)) { wires[n] = []; owned[n] = ""; }
+const w = (net, ...pts) => wires[net].push(pts);
+const own = (net, svg) => (owned[net] += svg);
+// +5V
+own("+5V", SYM.place("vcc", 40, 50));
+w("+5V", [40, 50], [420, 50]); w("+5V", [100, 50], [100, 70]); w("+5V", [320, 50], [320, 110]); w("+5V", [420, 50], [420, 190]);
+own("+5V", SYM.dot(100, 50) + SYM.dot(320, 50));
+// BTN(左の R1 と SW1、右の U1 の入力をラベルでつなぐ)
+w("BTN", [100, 130], [100, 170]); w("BTN", [100, 150], [178, 150]); w("BTN", [200, 160], [270, 160]);
+own("BTN", SYM.dot(100, 150) + SYM.label(140, 138, "BTN", { size: 12, weight: 700 }) + SYM.label(226, 148, "BTN", { size: 12, weight: 700 })
+  + `<path d="M178 150l6 0" stroke="currentColor" stroke-width="2"/>`);
+// OUT と LED_A
+w("OUT", [370, 160], [470, 160]);
+w("LED_A", [530, 160], [560, 160], [560, 175]);
+// GND
+w("GND", [100, 230], [100, 250]); w("GND", [320, 210], [320, 250]); w("GND", [560, 235], [560, 250]);
+own("GND", [100, 320, 420, 560].map((x) => SYM.place("gnd", x, 250)).join(""));
+
+const comps =
+  SYM.between("res", 100, 70, 100, 130, { name: "R1", value: "10 kΩ", gap: 16 }) +
+  SYM.between("pba", 100, 170, 100, 230, { name: "SW1", side: "left", gap: 16 }) +
+  `<rect x="270" y="110" width="100" height="100" rx="3" fill="var(--card)" stroke="currentColor" stroke-width="2"/>` +
+  SYM.label(320, 133, "U1", { weight: 700 }) +
+  SYM.label(320, 196, "GND", { size: 10 }) + SYM.label(277, 160, "IN", { size: 10, anchor: "start" }) + SYM.label(363, 160, "OUT", { size: 10, anchor: "end" }) + SYM.label(320, 146, "VCC", { size: 10 }) +
+  SYM.label(327, 100, "1", { size: 10, color: "var(--sub)", anchor: "start" }) + SYM.label(264, 151, "2", { size: 10, color: "var(--sub)" }) +
+  SYM.label(378, 151, "3", { size: 10, color: "var(--sub)" }) + SYM.label(327, 222, "4", { size: 10, color: "var(--sub)", anchor: "start" }) +
+  SYM.between("cap", 420, 190, 420, 250, { name: "C1", value: "0.1 µF", gap: 18 }) +
+  SYM.between("res", 470, 160, 530, 160, { name: "R2", value: "330 Ω", gap: 18 }) +
+  SYM.between("led", 560, 175, 560, 235, { name: "D1", side: "left", gap: 18 }) +
+  `<text class="mark" x="432" y="146" font-size="16" fill="#B98900">★</text>`;
+
+let mode = "explore", sel = [], quizIdx = 0, answered = null, correct = 0;
+const QUIZ = [
+  { q: "★ の交差で、横の線(U1 の OUT)と縦の線はつながっている?", c: ["つながっている", "つながっていない"], a: 1, show: ["OUT", "+5V"],
+    ex: "<b>黒丸 ● がない交差はつながっていない。</b>横は OUT、縦は +5V。別のネットなので色も分かれる。" },
+  { q: "SW1 の上の端子と、U1 の 2 番ピン(IN)はつながっている?", c: ["つながっている", "つながっていない"], a: 0, show: ["BTN"],
+    ex: "<b>同じ名前のラベル「BTN」</b>が付いた線どうしはつながっている。線を長く引き回さずにすむ。" },
+  { q: "GND の記号は 4 つ。ネット(電気的なまとまり)としてはいくつ?", c: ["1 つ", "2 つ", "4 つ"], a: 0, show: ["GND"],
+    ex: "<b>GND はいくつ描いても 1 つのネット。</b>全部が同じ 0 V の線につながっている。" },
+  { q: "C1 の上側の端子は、どのネットにつながっている?", c: ["+5V", "BTN", "OUT"], a: 0, show: ["+5V"],
+    ex: "C1 から上へ伸びる線は ★ で OUT と交差するだけで、そのまま <b>+5V</b> の線に届く。IC の電源の近くに置く「パスコン」(4 章)。" },
+  { q: "LED D1 のアノード(+ 側)と直接つながっている部品は?", c: ["R2", "U1", "C1"], a: 0, show: ["LED_A"],
+    ex: "D1 のアノードは <b>R2</b> とだけつながる(LED_A)。U1 の OUT とは R2 をはさんでつながっている。" },
+];
+
+function render() {
+  let s = comps;
+  for (const n of Object.keys(NETS)) {
+    const cls = sel[0] === n ? " sel" : sel[1] === n ? " sel2" : "";
+    s += `<g class="net${cls}" data-net="${n}">` + wires[n].map((p) => `<polyline class="glow" points="${p.map((q) => q.join(",")).join(" ")}"/>`).join("")
+      + wires[n].map((p) => SYM.wire(p)).join("") + owned[n] + wires[n].map((p) => `<polyline class="hit" points="${p.map((q) => q.join(",")).join(" ")}"/>`).join("") + `</g>`;
+  }
+  $("sch").innerHTML = s;
+  const info = $("info");
+  if (mode === "quiz" && answered !== null) {
+    const q = QUIZ[quizIdx], ok = answered === q.a;
+    info.className = "hint info " + (ok ? "ok" : "warn");
+    info.innerHTML = (ok ? "<b>正解!</b> " : "<b>おしい。</b> ") + q.ex;
+  } else if (mode === "quiz" && quizIdx >= QUIZ.length) {
+    info.className = "hint info ok";
+    info.innerHTML = `<b>${QUIZ.length} 問中 ${correct} 問正解。</b>` + (correct === QUIZ.length ? "線のルールはばっちり。3 章の記号へ進もう。" : "「探検する」で線をクリックして、つながりを確かめてみよう。");
+  } else if (sel.length) {
+    const n = NETS[sel[0]];
+    info.className = "hint info";
+    info.innerHTML = `ネット <b>${sel[0]}</b> — ${n.why}<div class="pins">${n.pins.map((p) => `<span>${p}</span>`).join("")}</div>`;
+  } else {
+    info.className = "hint info";
+    info.innerHTML = mode === "quiz" ? "答えを選ぶと、関係する線が光って理由が出る。" : "<b>線をクリックしてみよう。</b>電気的につながっている所(ネット)が全部光る。● の有無、★ の交差、同じ名前のラベル、GND の記号に注目。";
+  }
+  $("score").innerHTML = mode === "quiz" ? `問題 <b>${Math.min(quizIdx + 1, QUIZ.length)}</b> / ${QUIZ.length} ・ 正解 <b id="correct">${correct}</b>` : "";
+  renderQuiz();
+  publish({ mode, sel, quizIdx: Math.min(quizIdx, QUIZ.length), correct });
+}
+function renderQuiz() {
+  document.body.classList.toggle("q", mode === "quiz");
+  if (mode !== "quiz") return;
+  if (quizIdx >= QUIZ.length) {
+    $("qtext").textContent = "おつかれさま!";
+    $("choices").innerHTML = `<button class="btn primary" id="again">もう一度</button>`;
+    $("again").onclick = () => { quizIdx = 0; correct = 0; answered = null; sel = []; render(); };
+    return;
+  }
+  const q = QUIZ[quizIdx];
+  $("qtext").textContent = `Q${quizIdx + 1}. ${q.q}`;
+  $("choices").innerHTML = q.c.map((c, i) => {
+    const cls = answered === null ? "" : i === q.a ? " right" : i === answered ? " wrong" : "";
+    return `<button class="btn${cls}" data-i="${i}"${answered !== null ? " disabled" : ""}${i === q.a ? ' data-ok="1"' : ""}>${c}</button>`;
+  }).join("") + (answered !== null ? `<button class="btn primary" id="next">${quizIdx + 1 < QUIZ.length ? "次の問題 →" : "結果を見る"}</button>` : "");
+  $("choices").querySelectorAll("button[data-i]").forEach((b) => b.addEventListener("click", () => {
+    answered = +b.dataset.i; if (answered === q.a) correct++; sel = q.show.slice(); render();
+  }));
+  if ($("next")) $("next").onclick = () => { quizIdx++; answered = null; sel = []; render(); };
+}
+$("sch").addEventListener("click", (e) => {
+  const g = e.target.closest(".net");
+  if (mode === "quiz" && answered === null) return;
+  sel = g ? (sel[0] === g.dataset.net && sel.length === 1 ? [] : [g.dataset.net]) : [];
+  render();
+});
+segment($("mode"), (v) => { mode = v; sel = []; answered = null; render(); });
+onRestore((s) => {
+  if (s.mode === "quiz" || s.mode === "explore") { mode = s.mode; setSeg($("mode"), mode); }
+  if (Array.isArray(s.sel)) sel = s.sel.filter((n) => NETS[n]);
+  if (Number.isFinite(s.quizIdx)) quizIdx = Math.max(0, Math.min(QUIZ.length, s.quizIdx | 0));
+  if (Number.isFinite(s.correct)) correct = Math.max(0, Math.min(quizIdx, s.correct | 0));
+  answered = null; render();
+});
+render(); ready();
+</script></body></html>

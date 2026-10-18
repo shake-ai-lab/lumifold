@@ -1,0 +1,140 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>記号図鑑とクイズ</title>
+<style>/*INC:_ed.css*/
+:root { --cols: 40; }
+.top { display: flex; align-items: center; gap: .5em; flex-wrap: wrap; }
+.top .score { margin-left: auto; font-size: .85em; color: var(--sub); white-space: nowrap; }
+.top .score b { color: var(--ink); }
+.main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .5em; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4em; }
+.card { border: 1.5px solid var(--line); background: var(--card); border-radius: .45em; padding: .35em .3em .3em; display: flex; flex-direction: column; align-items: center; gap: .15em; cursor: pointer; min-width: 0; }
+.card:hover { border-color: var(--blue); }
+.card.on { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-soft); }
+.card svg { width: 100%; height: 3.1em; }
+.card .n { font-size: .72em; text-align: center; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.detail { flex: 1; min-height: 0; display: flex; gap: .8em; align-items: center; background: var(--card); border: 1.5px solid var(--line); border-radius: .5em; padding: .5em .8em; }
+.detail .big { width: 9em; height: 100%; max-height: 7.5em; flex: none; display: flex; align-items: center; justify-content: center; }
+.detail .big svg { width: 100%; height: 100%; }
+.detail .name { font-size: 1.15em; font-weight: 700; }
+.detail .code { display: inline-block; font-size: .78em; padding: .05em .55em; margin-left: .4em; border-radius: .3em; background: var(--raise); color: var(--sub); vertical-align: .15em; }
+.detail .desc { font-size: .88em; margin-top: .2em; }
+.detail .tip { font-size: .85em; margin-top: .35em; color: var(--blue); }
+.detail .tip::before { content: "覚え方 "; font-weight: 700; }
+/* クイズ */
+.quiz { flex: 1; min-height: 0; display: none; flex-direction: column; gap: .5em; }
+body.q .quiz { display: flex; } body.q .book { display: none; }
+.bar { height: .45em; background: var(--raise); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--blue); width: 0; transition: width .3s; }
+.ask { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--card); border: 1.5px solid var(--line); border-radius: .5em; padding: .4em; position: relative; }
+.ask svg { height: 100%; max-height: 8em; width: 60%; }
+.ask .word { font-size: 1.6em; font-weight: 700; }
+.ask .streak { position: absolute; right: .6em; top: .4em; font-size: .8em; color: var(--red); font-weight: 700; }
+.ask .qn { position: absolute; left: .6em; top: .4em; font-size: .78em; color: var(--sub); }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: .4em; }
+.choices .btn { border-radius: .45em; padding: .45em .6em; font-size: .9em; text-align: center; }
+.choices.pics .btn { padding: .2em; }
+.choices.pics svg { width: 100%; height: 3.4em; }
+.choices .btn.right { background: var(--green); border-color: var(--green); color: #fff; }
+.choices .btn.wrong { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+.choices .btn:disabled { opacity: .4; cursor: default; }
+.choices .btn.right:disabled, .choices .btn.wrong:disabled { opacity: 1; }
+.feedback { min-height: 3.2em; display: flex; align-items: center; gap: .6em; }
+.feedback .hint { flex: 1; }
+.result { text-align: center; }
+.result .rank { font-size: 2em; font-weight: 700; color: var(--blue); }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 03 · 記号図鑑とクイズ</span><span class="chip" id="count"></span></header>
+<div class="top">
+  <div class="seg" id="mode"><button data-v="book" class="on" aria-pressed="true">図鑑</button><button data-v="quiz" aria-pressed="false">クイズ 10 問</button></div>
+  <div class="seg" id="cat"><button data-v="passive" class="on" aria-pressed="true">受動部品</button><button data-v="semi" aria-pressed="false">半導体</button><button data-v="switch" aria-pressed="false">スイッチ・保護</button><button data-v="power" aria-pressed="false">電源・出力</button></div>
+  <span class="score" id="score"></span>
+</div>
+<div class="main">
+  <div class="book main"><div class="grid" id="grid"></div><div class="detail" id="detail"></div></div>
+  <div class="quiz" id="quiz"></div>
+</div>
+</div>
+<script>"use strict";
+/*INC:_ed.js*/
+/*INC:_sym.js*/
+const ITEMS = SYM.LIST.map((it) => ({ ...it, id: it.id || it.key, answer: it.answer || it.name }));
+const byId = Object.fromEntries(ITEMS.map((it) => [it.id, it]));
+const pic = (it, pad = 8) => SYM.standalone(it.key, it.old ? { old: true } : {}, pad).replace("<svg ", '<svg preserveAspectRatio="xMidYMid meet" ');
+$("count").textContent = `記号 ${ITEMS.length} 個`;
+let mode = "book", cat = "passive", pick = "res", best = 0;
+let quiz = null; // { list: [{id, type, choices:[id], answerIdx}], i, right, streak, maxStreak, chosen }
+
+function renderBook() {
+  const list = ITEMS.filter((it) => it.cat === cat);
+  if (!list.some((it) => it.id === pick)) pick = list[0].id;
+  $("grid").innerHTML = list.map((it) => `<div class="card${it.id === pick ? " on" : ""}" data-id="${it.id}" role="button" tabindex="0" aria-label="${it.name}">${pic(it)}<div class="n">${it.name}</div></div>`).join("");
+  const it = byId[pick];
+  $("detail").innerHTML = `<div class="big">${pic(it, 10)}</div><div><div class="name">${it.name}<span class="code">文字記号 ${it.code}</span></div><div class="desc">${it.desc}</div><div class="tip">${it.tip}</div></div>`;
+}
+$("grid").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) { pick = c.dataset.id; render(); } });
+$("grid").addEventListener("keydown", (e) => { const c = e.target.closest(".card"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pick = c.dataset.id; render(); } });
+
+// ---- クイズ
+function shuffle(a, r) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function newQuiz() {
+  const r = rng(Date.now() & 0xffffffff);
+  const pool = shuffle(ITEMS.slice(), r).slice(0, 10);
+  const list = pool.map((it, n) => {
+    const type = it.old ? "name" : n % 2 === 0 ? "name" : "pic"; // name = 記号を見て名前、pic = 名前を見て記号
+    // まちがいの選択肢は同じ仲間から優先して選ぶ(名前が同じものは除く)
+    const others = shuffle(ITEMS.filter((o) => o.answer !== it.answer && !o.old), r).sort((a, b) => (b.cat === it.cat) - (a.cat === it.cat));
+    const choices = shuffle([it, ...others.slice(0, 3)], r).map((o) => o.id);
+    return { id: it.id, type, choices, answerIdx: choices.indexOf(it.id) };
+  });
+  quiz = { list, i: 0, right: 0, streak: 0, maxStreak: 0, chosen: null };
+}
+function renderQuiz() {
+  const box = $("quiz");
+  if (!quiz) newQuiz();
+  const Q = quiz.list.length;
+  if (quiz.i >= Q) {
+    const n = quiz.right, rank = n === Q ? "図面マスター" : n >= 8 ? "ベテラン" : n >= 5 ? "一人前" : "見習い";
+    best = Math.max(best, n);
+    box.innerHTML = `<div class="bar"><i style="width:100%"></i></div><div class="ask result"><div><div class="sub">${Q} 問中 <b id="right">${n}</b> 問正解 ・ 最高連続 ${quiz.maxStreak} 問</div><div class="rank" id="rank">${rank}</div>`
+      + `<div class="sub">${n === Q ? "全問正解! 記号はもう読める。" : "図鑑で「覚え方」を見てから、もう一度挑戦してみよう。"}</div></div></div>`
+      + `<div class="feedback"><button class="btn primary" id="again">もう一度(問題が変わる)</button><button class="btn" id="tobook">図鑑で復習</button></div>`;
+    $("again").onclick = () => { newQuiz(); render(); };
+    $("tobook").onclick = () => { mode = "book"; setSeg($("mode"), mode); render(); };
+    return;
+  }
+  const q = quiz.list[quiz.i], it = byId[q.id], done = quiz.chosen !== null;
+  const ask = q.type === "name" ? pic(it, 10) : `<div class="word">${it.answer}</div>`;
+  const choice = (id, k) => {
+    const o = byId[id], cls = !done ? "" : k === q.answerIdx ? " right" : k === quiz.chosen ? " wrong" : "";
+    return `<button class="btn${cls}" data-k="${k}"${k === q.answerIdx ? ' data-ok="1"' : ""}${done ? " disabled" : ""}>${q.type === "name" ? o.answer : pic(o, 6)}</button>`;
+  };
+  const ok = done && quiz.chosen === q.answerIdx;
+  box.innerHTML = `<div class="bar"><i style="width:${(quiz.i / Q) * 100}%"></i></div>`
+    + `<div class="ask"><span class="qn">Q${quiz.i + 1}. ${q.type === "name" ? "この記号の名前は?" : "この部品の記号はどれ?"}</span>${quiz.streak >= 2 ? `<span class="streak">${quiz.streak} 問連続!</span>` : ""}${ask}</div>`
+    + `<div class="choices${q.type === "pic" ? " pics" : ""}">${q.choices.map(choice).join("")}</div>`
+    + `<div class="feedback">${done ? `<div class="hint ${ok ? "ok" : "warn"}"><b>${ok ? "正解!" : "答えは「" + it.answer + "」"}</b> ${it.tip}</div><button class="btn primary" id="next">${quiz.i + 1 < Q ? "次へ →" : "結果を見る"}</button>` : `<div class="hint">迷ったら形の部品(矢印・丸・点線)に注目しよう。</div>`}</div>`;
+  box.querySelectorAll(".choices button").forEach((b) => b.addEventListener("click", () => {
+    if (quiz.chosen !== null) return;
+    quiz.chosen = +b.dataset.k;
+    if (quiz.chosen === q.answerIdx) { quiz.right++; quiz.streak++; quiz.maxStreak = Math.max(quiz.maxStreak, quiz.streak); } else quiz.streak = 0;
+    render();
+  }));
+  if ($("next")) $("next").onclick = () => { quiz.i++; quiz.chosen = null; render(); };
+}
+function render() {
+  document.body.classList.toggle("q", mode === "quiz");
+  $("cat").style.display = mode === "book" ? "" : "none";
+  if (mode === "book") renderBook(); else renderQuiz();
+  $("score").innerHTML = mode === "quiz" && quiz ? `正解 <b id="sc">${quiz.right}</b> / ${quiz.list.length}${best ? ` ・ 最高 ${best}` : ""}` : "";
+  publish({ mode, cat, pick, best });
+}
+segment($("mode"), (v) => { mode = v; if (v === "quiz" && (!quiz || quiz.i >= quiz.list.length)) newQuiz(); render(); });
+segment($("cat"), (v) => { cat = v; render(); });
+onRestore((s) => {
+  if (s.mode === "book" || s.mode === "quiz") { mode = s.mode; setSeg($("mode"), mode); }
+  if (["passive", "semi", "switch", "power"].includes(s.cat)) { cat = s.cat; setSeg($("cat"), cat); }
+  if (byId[s.pick]) pick = s.pick;
+  if (Number.isFinite(s.best)) best = s.best | 0;
+  render();
+});
+render(); ready();
+</script></body></html>

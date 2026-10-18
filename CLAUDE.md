@@ -9,8 +9,12 @@ Tauri v2(Rust)+ React。設計は `docs/DESIGN.md`、データ形式は `ai/sche
 ## 進捗(2026-10-18)
 
 - 配布の準備(2026-10-18): 第三者のライセンス文は `THIRD_PARTY_LICENSES.txt`(`npm run licenses` で作る。依存を足したら作り直す)。
-  インストーラに LICENSE と一緒に入る(tauri.conf の bundle.resources)。見本の資料は decks/neural-network と decks/sd-lora だけ。
+  インストーラに LICENSE と一緒に入る(tauri.conf の bundle.resources)。見本の資料は decks/neural-network と decks/sd-lora、ノートの教材 decks/electrical-drawings。
   テスト用の資料は tools/fixtures/。開発者向けの準備と起動の手順は README.md
+- ノート教材「はじめての電気図面」(2026-10-18): decks/electrical-drawings(42 ページ、さわれる図 5 つ: 懐中電灯・つながりを光らせる・記号図鑑とクイズ・LED と抵抗・シーケンス回路)。
+  目次は外国語を学ぶ順: 地図(図面の種類)→ 文法(線と点・名前・図枠)→ 単語(記号)→ 文章(回路図・シーケンス図)→ 実務(配線図・部品表・改訂)→ まとめ。章の扉は右ページ。
+  記号は widgets/_sym.js(JIS C 0617 / IEC 60617 に沿った SVG。ウィジェットと図版で共有。a 接点は可動片が上、b 接点は下へ傾いて短い線に触れる)。
+  図版は tools/electrical-figures.js → tools/create-electrical-assets.mjs で PNG、本文は tools/create-electrical-deck.py で作る(見積もりで文字あふれを警告)
 - Linux(2026-10-18): Debian 12 のコンテナで `npm ci` → `npx tauri build --bundles deb` → Xvfb で起動して、見本 2 つとノートの表示を確認。
   WebKitGTK は選択欄を OS の明るい配色で描くので、入力部品だけ `color-scheme: dark`(ページ全体に付けるとウィジェットの iframe の背景が不透明になる)。
   書体(Meiryo が無い)と文節改行(auto-phrase が効かない)の違いは README の「Linux での違い」
@@ -108,7 +112,7 @@ src/                 React フロント(画面)
 src-tauri/           Rust(ファイル読み書き、監視、起動引数)。画面の都合は知らない。lib.rs(読み書き・画像・控え)、package.rs(1 ファイルにまとめる・展開)、watch.rs(監視)
 ai/schema.json       deck.json の JSON Schema(AI 生成と検証で共有)
 decks/<name>/<name>.deck  デッキ(中身は JSON。既存のデッキは旧名 deck.json のまま)。画像は同じフォルダの assets/ に置き相対パスで参照
-                     見本は neural-network(15 枚)と sd-lora(5 枚)だけ
+                     見本は neural-network(15 枚)と sd-lora(5 枚)、ノートの教材 electrical-drawings(42 ページ)
 tools/fixtures/      テスト用の資料: demo(ほとんどのテストの土台)・note-demo・coffee-extraction(数式とウィジェット)・authoring-review・_e2e(本物のアプリ用)。
                      external/ と consistency/ はテストが毎回作り直す。tools/e2e-export と ui-audit は名前を fixtures → decks の順に探す
   editor/            Editor.tsx(Moveable + Selecto)、useEditorKeys.ts(キー操作・貼り付け)、elementMenu.tsx(要素の右クリック)、
@@ -146,6 +150,9 @@ tools/e2e-state-consistency.mjs [資料…]  状態を切り替えたときの�
                      引数なしで試験用デッキ（tools/fixtures/consistency/、毎回作り直す）と decks/* 全部。違いは tools/shots-consistency/ に前後の画像で残る。画面を変えたら回す
 tools/create-sd-lora-assets.py / create-sd-lora-deck.py / e2e-sd-lora-widgets.mjs  decks/sd-lora（Stable Diffusion と LoRA、5 枚。暗い地の「暗室」テーマ）の画像・生成・ウィジェット 4 つ
                      （noise / cfg / lora / planner）の単体テスト。cfg は 2 次元の混合ガウスで厳密なスコアを使う玩具モデル、lora は B·A をその場で勾配降下。共通は widgets/_dr.js・_darkroom.css
+tools/electrical-figures.js / create-electrical-assets.mjs / create-electrical-deck.py / e2e-electrical-widgets.mjs  decks/electrical-drawings(ノート教材「はじめての電気図面」)の図版・本文の生成と、
+                     ウィジェット 5 つ(flashlight / nets / symbols / led / sequence)の単体テスト。--reader を付けると vite dev 起動中に読む画面でも操作を確かめる
+                     (iframe はページの拡大縮小の中にあるので、押す位置は拡大率を掛けて計算する。frameLocator の位置は親の transform を考えない)。共通は widgets/_ed.js・_ed.css・_sym.js
 ```
 
 ## コマンド

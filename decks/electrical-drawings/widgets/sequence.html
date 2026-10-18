@@ -1,0 +1,519 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>シーケンス回路: 自己保持とインターロック</title>
+<style>/* electrical-drawings のウィジェット共通(方眼紙と青図のテーマ)。1em = iframe の幅 / --cols(各ウィジェットが決める)。
+   青 = さわれる所・選択、赤橙 = 電気が来ている所、黄 = 強調、緑 = 正解・GND */
+:root {
+  --paper: #FCFBF7; --card: #FFFFFF; --raise: #EDF2F7; --line: #C9D3DE; --ink: #1E2733; --sub: #5B6676; --mute: #8A94A3;
+  --blue: #1E6BB8; --navy: #17375E; --red: #D9480F; --amber: #F2B705; --green: #2F8F5B; --violet: #8A5CC2;
+  --blue-soft: rgba(30, 107, 184, .12); --red-soft: rgba(217, 72, 15, .12); --amber-soft: rgba(242, 183, 5, .28); --green-soft: rgba(47, 143, 91, .14);
+  --grid: rgba(30, 107, 184, .07);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; }
+body { color: var(--ink); font: 400 calc(100vw / var(--cols, 40)) / 1.45 "BIZ UDPGothic", "Yu Gothic UI", "Meiryo UI", sans-serif; overflow: hidden; }
+.frame { height: 100%; display: flex; flex-direction: column; gap: .55em; padding: .7em .85em .8em; border: 2px solid var(--blue); border-radius: .6em;
+  background-color: var(--paper); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 1em 1em; }
+header { display: flex; align-items: center; gap: .6em; min-height: 1.5em; }
+.tag { font-size: .8em; font-weight: 700; letter-spacing: .06em; color: var(--blue); white-space: nowrap; }
+.tag::before { content: ""; display: inline-block; width: .6em; height: .6em; margin-right: .45em; border-radius: 50%; background: currentColor; vertical-align: .02em; }
+.chip { margin-left: auto; font-size: .72em; padding: .12em .7em; border-radius: 999px; background: var(--raise); color: var(--sub); white-space: nowrap; }
+.num, output { font-family: Consolas, "Cascadia Mono", monospace; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: var(--ink); cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn { border: 1.5px solid var(--line); background: var(--card); border-radius: 999px; padding: .25em .9em; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.btn:hover { border-color: var(--blue); color: var(--blue); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { filter: brightness(1.1); color: #fff; }
+.btn[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+.btn:disabled { opacity: .45; cursor: default; }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: .22em .8em; font-size: .82em; color: var(--sub); white-space: nowrap; }
+.seg button + button { border-left: 1.5px solid var(--line); }
+.seg button.on { background: var(--blue); color: #fff; font-weight: 700; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .45em .8em; }
+label { display: inline-flex; align-items: center; gap: .45em; font-size: .85em; color: var(--sub); white-space: nowrap; }
+label b { color: var(--ink); }
+input[type=range] { width: 8em; accent-color: var(--blue); margin: 0; }
+output { color: var(--ink); min-width: 3.2em; display: inline-block; font-weight: 700; }
+.tile { background: var(--card); border: 1.5px solid var(--line); border-radius: .45em; padding: .3em .6em .35em; min-width: 0; }
+.tile .k { font-size: .72em; color: var(--sub); white-space: nowrap; }
+.tile .v { font-size: 1.25em; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hint { font-size: .85em; color: var(--ink); line-height: 1.55; background: var(--card); border-left: .3em solid var(--blue); border-radius: .3em; padding: .4em .7em; }
+.hint b { color: var(--blue); }
+.hint.warn { border-left-color: var(--red); }
+.hint.warn b { color: var(--red); }
+.hint.ok { border-left-color: var(--green); }
+.hint.ok b { color: var(--green); }
+.red { color: var(--red); } .blue { color: var(--blue); } .green { color: var(--green); } .sub { color: var(--sub); } .amber { color: #B98900; }
+svg { display: block; }
+svg text { font-family: "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", sans-serif; }
+.panel { background: var(--card); border: 1.5px solid var(--line); border-radius: .5em; min-width: 0; min-height: 0; position: relative; }
+.panel > .ptitle { position: absolute; left: .55em; top: .3em; font-size: .72em; font-weight: 700; color: var(--sub); letter-spacing: .05em; }
+@keyframes flow { to { stroke-dashoffset: -16; } }
+.flow { stroke-dasharray: 2 14; stroke-linecap: round; animation: flow .6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .flow { animation: none; } }
+
+:root { --cols: 40; }
+.top { display: flex; align-items: center; gap: .6em; flex-wrap: wrap; }
+.ladder { flex: 1; min-height: 0; }
+.ladder svg { width: 100%; height: 100%; }
+.sch { color: var(--ink); }
+.sch .live { color: var(--red); }
+.sch .ghost { color: var(--mute); }
+.sch .pbhit { cursor: pointer; fill: transparent; }
+.machine { display: flex; align-items: center; gap: .9em; background: var(--navy); border-radius: .5em; padding: .45em .8em; color: #fff; }
+.machine .lbl { font-size: .7em; color: #9FB0C4; letter-spacing: .08em; writing-mode: vertical-rl; }
+.pbs { display: flex; gap: .7em; }
+.pb { width: 3.9em; height: 3.9em; white-space: nowrap; border-radius: 50%; border: .25em solid #C9D3DE; font-weight: 700; font-size: .78em; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;
+  box-shadow: 0 .25em 0 rgba(0, 0, 0, .35); touch-action: none; user-select: none; transition: transform .05s, box-shadow .05s; }
+.pb small { font-size: .72em; font-weight: 400; opacity: .85; }
+.pb.down { transform: translateY(.2em); box-shadow: 0 .05em 0 rgba(0, 0, 0, .35); filter: brightness(.88); }
+.pb.red { background: #D63B2F; } .pb.green { background: #2F8F5B; } .pb.blue { background: #2459C9; }
+.pb.both { width: auto; border-radius: .8em; padding: 0 .7em; background: #5B6676; font-size: .72em; }
+.ind { margin-left: auto; display: flex; align-items: center; gap: .8em; }
+.lampv { display: flex; flex-direction: column; align-items: center; gap: .15em; font-size: .72em; color: #C9D3DE; }
+.lampv i { width: 1.6em; height: 1.6em; border-radius: 50%; border: .15em solid #5B6676; background: #2B3542; }
+.lampv i.on.r { background: #FF4D3D; box-shadow: 0 0 .8em #FF4D3D; } .lampv i.on.g { background: #3BD27A; box-shadow: 0 0 .8em #3BD27A; }
+.motor { display: flex; align-items: center; gap: .45em; font-size: .8em; }
+.motor svg { width: 2.6em; height: 2.6em; }
+@keyframes cw { to { transform: rotate(360deg); } } @keyframes ccw { to { transform: rotate(-360deg); } }
+.fan { transform-origin: 20px 20px; } .fan.cw { animation: cw .8s linear infinite; } .fan.ccw { animation: ccw .8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .fan.cw, .fan.ccw { animation: none; } }
+.found { display: flex; flex-wrap: wrap; gap: .3em .45em; align-items: center; font-size: .74em; color: var(--sub); }
+.found span.f { padding: .08em .6em; border-radius: 999px; border: 1.5px dashed var(--line); background: var(--card); white-space: nowrap; }
+.found span.f.got { border-style: solid; border-color: var(--green); color: var(--green); font-weight: 700; background: var(--green-soft); }
+.hint { min-height: 4.3em; }
+.log { font-size: .78em; color: var(--sub); margin-top: .2em; }
+.trip { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: .5em; background: rgba(217, 72, 15, .12); border-radius: .5em; }
+.trip b { font-size: 1.5em; color: var(--red); background: var(--card); padding: .1em .7em; border-radius: .3em; border: 2px solid var(--red); }
+body.tripped .trip { display: flex; }
+</style></head><body><div class="frame">
+<header><span class="tag">さわれる図 05 · シーケンス回路</span><span class="chip">押すと動く・離しても動く</span></header>
+<div class="top">
+  <div class="seg" id="mode"><button data-v="hold" class="on" aria-pressed="true">自己保持</button><button data-v="lock" aria-pressed="false">インターロック</button></div>
+  <button class="btn" id="opt" aria-pressed="true"></button>
+</div>
+<div class="panel ladder"><svg id="sch" class="sch" viewBox="0 0 600 278" aria-label="シーケンス図(展開接続図)"></svg>
+  <div class="trip"><b>短絡! ブレーカが落ちた</b><button class="btn primary" id="reset">ブレーカを戻す</button></div></div>
+<div class="machine"><span class="lbl">操作盤</span><div class="pbs" id="pbs"></div><div class="ind" id="ind"></div></div>
+<div class="found" id="found"></div>
+<div class="hint" id="hint"></div>
+</div>
+<script>"use strict";
+// electrical-drawings のウィジェット共通: 要素の取得、切り替えボタン、乱数、状態の保存と復元(deck-studio:widget-state / widget-restore)
+const $ = (id) => document.getElementById(id);
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function segment(el, onPick) {
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { setSeg(el, b.dataset.v); onPick(b.dataset.v); }));
+}
+function setSeg(el, v) { el.querySelectorAll("button").forEach((b) => { const on = b.dataset.v === String(v); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); }); }
+// 押している間だけ ON になるボタン(マウス・タッチ・Space / Enter)
+function momentary(el, onChange) {
+  let down = false;
+  const set = (v) => { if (down === v) return; down = v; el.classList.toggle("down", v); el.setAttribute("aria-pressed", String(v)); onChange(v); };
+  el.addEventListener("pointerdown", (e) => { e.preventDefault(); el.setPointerCapture?.(e.pointerId); set(true); });
+  for (const t of ["pointerup", "pointercancel", "lostpointercapture"]) el.addEventListener(t, () => set(false));
+  el.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); set(true); } });
+  el.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); set(false); } });
+  el.addEventListener("blur", () => set(false));
+  return { set, get: () => down };
+}
+let publishing = false;
+function publish(state) { if (publishing && parent !== window) parent.postMessage({ type: "deck-studio:widget-state", state }, "*"); }
+function onRestore(fn) {
+  window.addEventListener("message", (e) => {
+    if (e.source !== parent || e.data?.type !== "deck-studio:widget-restore" || !e.data.state) return;
+    const p = publishing; publishing = false; fn(e.data.state); publishing = p;
+  });
+}
+function ready() { publishing = true; if (parent !== window) parent.postMessage({ type: "deck-studio:widget-ready" }, "*"); }
+
+// 電気図記号(JIS C 0617 / IEC 60617 に沿った、教材用の描き方)を SVG の文字列で作る。
+// ウィジェット(/*INC:_sym.js*/)と資料の図版(tools/create-electrical-assets.mjs)で共有する。
+// 2 端子の記号は横向きで、端子は (0,0) と (60,0)。線の色は currentColor(CSS の color で変わる)。
+// 接点の向き: a 接点は可動片が上へ浮く、b 接点は可動片が下へ傾いて固定側の短い線に触れる(IEC の縦向きの記号を右へ 90° 回した形)。
+const SYM = (() => {
+  const FONT = '"BIZ UDPGothic", "Yu Gothic UI", "Meiryo", sans-serif';
+  const r2 = (v) => Math.round(v * 100) / 100;
+  const P = (d, extra = "") => `<path d="${d}"${extra}/>`;
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // 塗りつぶした矢じり(x2, y2 が先端)
+  function head(x1, y1, x2, y2, s = 6) {
+    const a = Math.atan2(y2 - y1, x2 - x1), w = s * 0.5;
+    const bx = x2 - s * Math.cos(a), by = y2 - s * Math.sin(a);
+    return `<path d="M${r2(x2)} ${r2(y2)}L${r2(bx - w * Math.sin(a))} ${r2(by + w * Math.cos(a))}L${r2(bx + w * Math.sin(a))} ${r2(by - w * Math.cos(a))}Z" fill="currentColor" stroke="none"/>`;
+  }
+  const arrow = (x1, y1, x2, y2, s = 6) => {
+    const a = Math.atan2(y2 - y1, x2 - x1);
+    return P(`M${r2(x1)} ${r2(y1)}L${r2(x2 - s * 0.7 * Math.cos(a))} ${r2(y2 - s * 0.7 * Math.sin(a))}`) + head(x1, y1, x2, y2, s);
+  };
+  const txt = (x, y, s, size = 14, extra = "") =>
+    `<text x="${r2(x)}" y="${r2(y)}" font-size="${size}" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none" font-family='${FONT}'${extra}>${esc(s)}</text>`;
+  const circ = (cx, cy, r, extra = "") => `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}"${extra}/>`;
+  const rect = (x, y, w, h, extra = "") => `<rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}"${extra}/>`;
+  const bumps = (n, dx, dy, sweep) => Array.from({ length: n }, () => `a4.5 4.5 0 0 ${sweep} ${dx} ${dy}`).join("");
+  const plus = (x, y, s = 3) => P(`M${x - s} ${y}H${x + s}M${x} ${y - s}V${y + s}`, ' stroke-width="1.6"');
+  const minus = (x, y, s = 3) => P(`M${x - s} ${y}H${x + s}`, ' stroke-width="1.6"');
+  const diodeBody = () => P("M0 0H22M38 0H60M38 -10V10") + P("M22 -10L38 0L22 10Z", ' fill="currentColor"');
+  const resBody = (old) => (old ? P("M0 0H14L16.67 -7L22 7L27.33 -7L32.67 7L38 -7L43.33 7L46 0H60") : P("M0 0H15M45 0H60") + rect(15, -6, 30, 12));
+
+  // 接点。closed は「いま閉じているか」ではなく可動片の位置: a 接点は押されると閉じ、b 接点は押されると開く
+  // 閉じた a 接点は線に埋もれないよう、接点の位置に小さな点を打つ(動きを見せる図のため)
+  const shut = () => circ(20, 0, 2.8, ' fill="currentColor" stroke="none"') + circ(40, 0, 2.8, ' fill="currentColor" stroke="none"');
+  function contactA(on) { return P("M0 0H20M40 0H60") + (on ? P("M20 0L40 0", ' stroke-width="3.2"') + shut() : P("M20 0L41 -12")); }
+  function contactB(on) {
+    // on = 動作した(押された・コイルに電気が来た)
+    const end = on ? [20 + 24 * Math.cos(0.7), 24 * Math.sin(0.7)] : [44, 10];
+    return P("M0 0H20M40 0H60M40 0V8") + P(`M20 0L${r2(end[0])} ${r2(end[1])}`);
+  }
+  // 押しボタンの操作部(点線の軸と頭)。y は可動片の中央の高さ
+  function pusher(y) {
+    const top = y - 16;
+    return P(`M30 ${r2(y - 1)}V${r2(top)}`, ' stroke-dasharray="3 2.5"') + P(`M24 ${r2(top + 3)}V${r2(top)}H36V${r2(top + 3)}`);
+  }
+
+  const shapes = {
+    res: (o) => resBody(o.old),
+    vres: (o) => resBody(o.old) + arrow(17, 14, 44, -14, 7),
+    pot: (o) => resBody(o.old) + P("M30 -24V-12") + head(30, -24, 30, o.old ? -8 : -6, 7),
+    ldr: (o) => resBody(o.old) + arrow(14, -24, 24, -12, 6) + arrow(24, -26, 34, -14, 6),
+    cap: () => P("M0 0H26M34 0H60M26 -12V12M34 -12V12"),
+    ecap: () => P("M0 0H26M34 0H60M26 -12V12M34 -12V12") + plus(18, -13),
+    vcap: () => P("M0 0H26M34 0H60M26 -12V12M34 -12V12") + arrow(17, 14, 44, -14, 7),
+    ind: () => P(`M0 0H12${bumps(4, 9, 0, 1)}H60`),
+    xfmr: () => P(`M0 -18H20${bumps(4, 0, 9, 1)}H0M60 -18H40${bumps(4, 0, 9, 0)}H60M28 -20V20M32 -20V20`),
+    diode: () => diodeBody(),
+    led: () => diodeBody() + arrow(28, -13, 37, -22, 6) + arrow(35, -10, 44, -19, 6),
+    pd: () => diodeBody() + arrow(39, -24, 30, -15, 6) + arrow(46, -20, 37, -11, 6),
+    zener: () => P("M0 0H22M38 0H60M34 -13L38 -10V10L42 13") + P("M22 -10L38 0L22 10Z", ' fill="currentColor"'),
+    npn: () => circ(31, 0, 19) + P("M0 0H22M22 -12V12M22 -6L38 -16V-30M22 6L38 16V30") + head(22, 6, 37, 15.4, 7),
+    pnp: () => circ(31, 0, 19) + P("M0 0H22M22 -12V12M22 -6L38 -16V-30M22 6L38 16V30") + head(38, 16, 23.5, 7, 7),
+    nmos: () => circ(29, 0, 19) + P("M0 6H16M16 -12V12M22 -14V-8M22 -3V3M22 8V14M22 -11H38V-30M22 11H38V30M38 0V11") + arrow(38, 0, 23, 0, 6),
+    opamp: () => P("M10 -26L10 26L56 0ZM0 -12H10M0 12H10M56 0H70") + minus(17, -12) + plus(17, 12),
+    lamp: () => P("M0 0H18M42 0H60") + circ(30, 0, 12) + P("M21.5 -8.5L38.5 8.5M38.5 -8.5L21.5 8.5"),
+    motor: () => P("M0 0H16M44 0H60") + circ(30, 0, 14) + txt(30, 0.5, "M", 15, ' font-weight="700"'),
+    meter: (o) => P("M0 0H16M44 0H60") + circ(30, 0, 14) + txt(30, 0.5, o.letter || "V", 15, ' font-weight="700"'),
+    buzzer: () => P("M0 0H22M38 0H60M22 0V-12M38 0V-12") + P("M14 -12H46A16 16 0 0 1 14 -12Z"),
+    acsrc: () => P("M0 0H18M42 0H60") + circ(30, 0, 12) + P("M22.5 0C25 -6 28 -6 30 0C32 6 35 6 37.5 0"),
+    batt: () => P("M0 0H27M33 0H60M27 -13V13") + P("M33 -7V7", ' stroke-width="4.5"') + plus(19, -14),
+    fuse: () => P("M0 0H60") + rect(15, -5, 30, 10),
+    mccb: (o) => P("M0 0H20M40 0H60") + (o.on ? P("M20 0L40 0", ' stroke-width="3.2"') + shut() : P("M20 0L41 -12")) + P("M36.5 -3.5L43.5 3.5M43.5 -3.5L36.5 3.5"),
+    swa: (o) => contactA(o.on),
+    swb: (o) => contactB(o.on),
+    swc: () => P("M0 0H20M40 -12H60M40 10H60M40 10V2") + P("M20 0L44 8.5"),
+    pba: (o) => contactA(o.on) + pusher(o.on ? 0 : -6),
+    pbb: (o) => contactB(o.on) + pusher(o.on ? 10 * Math.tan(0.7) : 4.2),
+    coil: () => P("M0 0H18M42 0H60") + rect(18, -8, 24, 16),
+    coilold: () => P("M0 0H17M43 0H60") + circ(30, 0, 13),
+    gnd: () => P("M0 0V10M-12 10H12M-7.5 15.5H7.5M-3 21H3"),
+    pe: () => P("M0 0V10M-12 10H12M-7.5 15.5H7.5M-3 21H3") + circ(0, 14, 16),
+    chassis: () => P("M0 0V10M-12 10H12M-12 10L-17 18M-2 10L-7 18M8 10L3 18"),
+    sgnd: () => P("M0 0V10M-11 10H11L0 21Z"),
+    vcc: (o) => P("M0 0V-12M-11 -12H11") + txt(0, -22, o.text || "+5V", 13, ' font-weight="700"'),
+    term: () => P("M0 0H24") + circ(30, 0, 5, ' fill="var(--paper, #fff)"'),
+    plug: () => P("M0 0H22M22 -8V8M22 -8H34M22 8H34") + P("M60 0H40M40 -6A8 8 0 0 0 40 6", ""),
+  };
+
+  // 端子の位置(回す前の座標)。2 端子の記号は a(0,0) と b(60,0)
+  const TWO = { a: [0, 0], b: [60, 0] };
+  const PINS = {
+    pot: { a: [0, 0], b: [60, 0], w: [30, -24] },
+    xfmr: { p1: [0, -18], p2: [0, 18], s1: [60, -18], s2: [60, 18] },
+    npn: { b: [0, 0], c: [38, -30], e: [38, 30] },
+    pnp: { b: [0, 0], c: [38, -30], e: [38, 30] },
+    nmos: { g: [0, 6], d: [38, -30], s: [38, 30] },
+    opamp: { m: [0, -12], p: [0, 12], o: [70, 0] },
+    swc: { a: [0, 0], b: [60, -12], c: [60, 10] },
+    gnd: { a: [0, 0] }, pe: { a: [0, 0] }, chassis: { a: [0, 0] }, sgnd: { a: [0, 0] }, vcc: { a: [0, 0] },
+  };
+  // 画像にするときの枠(回す前の座標、線幅込みの余白は呼ぶ側で足す)
+  const BOX = {
+    res: [0, -8, 60, 16], vres: [0, -16, 60, 32], pot: [0, -26, 60, 34], ldr: [0, -28, 60, 36], cap: [0, -13, 60, 26], ecap: [0, -17, 60, 30], vcap: [0, -16, 60, 32],
+    ind: [0, -6, 60, 8], xfmr: [0, -21, 60, 42], diode: [0, -11, 60, 22], led: [0, -24, 60, 35], pd: [0, -26, 60, 37], zener: [0, -14, 60, 28],
+    npn: [0, -31, 52, 62], pnp: [0, -31, 52, 62], nmos: [0, -31, 50, 62], opamp: [0, -27, 70, 54], lamp: [0, -13, 60, 26], motor: [0, -15, 60, 30], meter: [0, -15, 60, 30],
+    buzzer: [0, -14, 60, 22], acsrc: [0, -13, 60, 26], batt: [0, -18, 60, 32], fuse: [0, -6, 60, 12], mccb: [0, -14, 60, 18], swa: [0, -14, 60, 16], swb: [0, -2, 60, 14],
+    swc: [0, -14, 60, 26], pba: [0, -24, 60, 26], pbb: [0, -14, 60, 26], coil: [0, -9, 60, 18], coilold: [0, -14, 60, 28], gnd: [-13, 0, 26, 22], pe: [-17, -3, 34, 34],
+    chassis: [-18, 0, 32, 19], sgnd: [-12, 0, 24, 22], vcc: [-16, -30, 32, 30], term: [0, -6, 36, 12], plug: [0, -9, 60, 18],
+  };
+  const SW = 2; // 線幅
+  const G = (inner, extra = "") => `<g fill="none" stroke="currentColor" stroke-width="${SW}" stroke-linecap="round" stroke-linejoin="round"${extra}>${inner}</g>`;
+  function draw(kind, o = {}) {
+    const f = shapes[kind];
+    if (!f) throw new Error("unknown symbol " + kind);
+    return f(o);
+  }
+  function place(kind, x, y, rot = 0, o = {}) {
+    const t = `translate(${r2(x)} ${r2(y)})` + (rot ? ` rotate(${rot})` : "") + (o.flip ? " scale(1 -1)" : "");
+    return G(draw(kind, o), ` transform="${t}"${o.cls ? ` class="${o.cls}"` : ""}${o.attrs || ""}`);
+  }
+  function pin(kind, x, y, rot, name) {
+    const p = (PINS[kind] || TWO)[name];
+    if (!p) throw new Error(`${kind} has no pin ${name}`);
+    const a = (rot * Math.PI) / 180;
+    return [r2(x + p[0] * Math.cos(a) - p[1] * Math.sin(a)), r2(y + p[0] * Math.sin(a) + p[1] * Math.cos(a))];
+  }
+  // 単体の記号の SVG(画像・図鑑のカード用)。pad は余白、scale は拡大率
+  function standalone(kind, o = {}, pad = 6, scale = 1) {
+    const [bx, by, bw, bh] = BOX[kind];
+    const w = bw + pad * 2, h = bh + pad * 2;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bx - pad} ${by - pad} ${w} ${h}" width="${r2(w * scale)}" height="${r2(h * scale)}">${G(draw(kind, o))}</svg>`;
+  }
+
+  // ---- 回路図を描く道具(座標はそのまま px)
+  const wire = (pts, extra = "") => `<polyline points="${pts.map((p) => p.map(r2).join(",")).join(" ")}" fill="none" stroke="currentColor" stroke-width="${SW}" stroke-linecap="round" stroke-linejoin="round"${extra}/>`;
+  const dot = (x, y, r = 3.6) => `<circle cx="${r2(x)}" cy="${r2(y)}" r="${r}" fill="currentColor" stroke="none"/>`;
+  const terminal = (x, y, r = 4.2) => `<circle cx="${r2(x)}" cy="${r2(y)}" r="${r}" fill="var(--paper, #fff)" stroke="currentColor" stroke-width="${SW}"/>`;
+  function label(x, y, s, o = {}) {
+    const size = o.size || 13, anchor = o.anchor || "middle";
+    const extra = (o.weight ? ` font-weight="${o.weight}"` : "") + (o.color ? ` fill="${o.color}"` : ' fill="currentColor"') + (o.attrs || "");
+    return `<text x="${r2(x)}" y="${r2(y)}" font-size="${size}" text-anchor="${anchor}" dominant-baseline="central" stroke="none" font-family='${FONT}'${extra}>${esc(s)}</text>`;
+  }
+  // 2 点の間に 2 端子の記号を置き、余った長さは線でつなぐ。o.name / o.value を記号の脇に書く
+  function between(kind, x1, y1, x2, y2, o = {}) {
+    const len = Math.hypot(x2 - x1, y2 - y1), rot = Math.round((Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI);
+    const a = (rot * Math.PI) / 180, off = (len - 60) / 2;
+    const sx = x1 + off * Math.cos(a), sy = y1 + off * Math.sin(a);
+    let s = "";
+    if (off > 0.5 && !o.noLeads) s += wire([[x1, y1], [sx, sy]], o.wireAttrs || "") + wire([[sx + 60 * Math.cos(a), sy + 60 * Math.sin(a)], [x2, y2]], o.wireAttrs || "");
+    s += place(kind, sx, sy, rot, o);
+    if (o.name || o.value) {
+      const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2, horiz = Math.abs(y2 - y1) < 1;
+      const side = o.side || (horiz ? "above" : "right"), gap = o.gap || (horiz ? 20 : 20);
+      const lines = [o.name, o.value].filter(Boolean);
+      const size = o.size || 13;
+      lines.forEach((t, i) => {
+        const weight = i === 0 && o.name ? "700" : "400";
+        if (side === "above") s += label(cx, cy - gap - (lines.length - 1 - i) * (size + 2), t, { size, weight, color: o.labelColor });
+        else if (side === "below") s += label(cx, cy + gap + i * (size + 2), t, { size, weight, color: o.labelColor });
+        else if (side === "right") s += label(cx + gap, cy + (i - (lines.length - 1) / 2) * (size + 2), t, { size, weight, anchor: "start", color: o.labelColor });
+        else s += label(cx - gap, cy + (i - (lines.length - 1) / 2) * (size + 2), t, { size, weight, anchor: "end", color: o.labelColor });
+      });
+    }
+    return s;
+  }
+
+  // 図鑑・クイズに出す記号(cat: passive / semi / switch / power)
+  const LIST = [
+    { key: "res", name: "抵抗器", code: "R", cat: "passive", desc: "電流を流れにくくして、量を調整する。", tip: "新 JIS は長方形。ギザギザは旧 JIS とアメリカ式" },
+    { key: "res", old: true, id: "res-old", name: "抵抗器(旧JIS)", answer: "抵抗器", code: "R", cat: "passive", desc: "古い図面や海外の図面で見るギザギザの抵抗。", tip: "長方形もギザギザも同じ抵抗器" },
+    { key: "vres", name: "可変抵抗器", code: "VR", cat: "passive", desc: "抵抗の値を変えられる。", tip: "斜めに突き抜ける矢印 =「値を変えられる」" },
+    { key: "pot", name: "ボリューム(3 端子)", code: "VR", cat: "passive", desc: "つまみで分ける割合を変える。音量つまみなど。", tip: "体に当たる矢印 = 動く接点(ワイパ)" },
+    { key: "cap", name: "コンデンサ", code: "C", cat: "passive", desc: "電気をためて放す。直流は通さず、交流は通す。", tip: "2 枚の板が向かい合う形" },
+    { key: "ecap", name: "電解コンデンサ", code: "C", cat: "passive", desc: "容量が大きい。+ と − の向き(極性)がある。", tip: "+ の印がある板が + 側。逆につなぐと壊れる" },
+    { key: "ind", name: "コイル", code: "L", cat: "passive", desc: "電流の変化をじゃまする。フィルタや電源に使う。", tip: "ばねのように巻いた線の形" },
+    { key: "xfmr", name: "変圧器(トランス)", code: "T", cat: "passive", desc: "2 つのコイルで交流の電圧を変える。", tip: "向かい合う 2 つのコイル + 鉄心の 2 本線" },
+    { key: "diode", name: "ダイオード", code: "D", cat: "semi", desc: "電流を一方向にだけ流す。", tip: "三角の向きに流れる。棒の側がカソード(−)" },
+    { key: "led", name: "発光ダイオード(LED)", code: "D / LED", cat: "semi", desc: "電流が流れると光る。向きがある。", tip: "外へ出ていく 2 本の矢印 = 光を出す" },
+    { key: "pd", name: "フォトダイオード", code: "D / PD", cat: "semi", desc: "光が当たると電流が流れる。光センサー。", tip: "入ってくる矢印 = 光を受ける" },
+    { key: "zener", name: "ツェナーダイオード", code: "ZD", cat: "semi", desc: "逆向きにかけた電圧を一定に保つ。", tip: "棒の両端が曲がっている" },
+    { key: "npn", name: "トランジスタ(NPN)", code: "Q / Tr", cat: "semi", desc: "小さな電流で大きな電流を開け閉めする。", tip: "矢印が外向き。Not Pointing iN = NPN" },
+    { key: "pnp", name: "トランジスタ(PNP)", code: "Q / Tr", cat: "semi", desc: "NPN と電流の向きが逆のトランジスタ。", tip: "矢印が内向き(Pointing iN = PNP)" },
+    { key: "nmos", name: "MOSFET(N チャネル)", code: "Q", cat: "semi", desc: "ゲートの電圧で大きな電流を開け閉めする。", tip: "ゲートが離れて描かれる = 電流をほぼ使わない" },
+    { key: "opamp", name: "オペアンプ", code: "U / IC", cat: "semi", desc: "+ と − の入力の差を大きくして出す。", tip: "三角形 = 増幅器" },
+    { key: "swa", name: "a 接点(メーク接点)", code: "S / SW", cat: "switch", desc: "ふだんは開いていて、動作すると閉じる。", tip: "可動片が浮いている = ふだんは切れている" },
+    { key: "swb", name: "b 接点(ブレーク接点)", code: "S / SW", cat: "switch", desc: "ふだんは閉じていて、動作すると開く。", tip: "可動片が短い線に触れている = ふだんはつながる" },
+    { key: "pba", name: "押しボタン(a 接点)", code: "PB", cat: "switch", desc: "押している間だけ閉じる。起動ボタンに使う。", tip: "点線 = 頭と接点が機械的につながっている" },
+    { key: "pbb", name: "押しボタン(b 接点)", code: "PB", cat: "switch", desc: "押している間だけ開く。停止ボタンに使う。", tip: "押すと触れていた接点が離れる" },
+    { key: "coil", name: "リレーのコイル", code: "K / MC / X", cat: "switch", desc: "電気が来ると、同じ名前の接点が一斉に動く。", tip: "長方形 + 名前。旧 JIS は円で描く" },
+    { key: "fuse", name: "ヒューズ", code: "F", cat: "switch", desc: "流れすぎると中の線が溶けて回路を切る。", tip: "長方形を線が突き抜ける" },
+    { key: "mccb", name: "配線用遮断器(ブレーカ)", code: "MCCB / CB", cat: "switch", desc: "流れすぎを検知して自動で切る。戻せば再び使える。", tip: "接点の × 印 = 遮断できる" },
+    { key: "batt", name: "電池(直流電源)", code: "BT / E", cat: "power", desc: "直流の電源。長い線が +、短い太い線が −。", tip: "長い = +、短い = −" },
+    { key: "acsrc", name: "交流電源", code: "AC", cat: "power", desc: "コンセントのように向きが入れかわる電源。", tip: "丸の中の波 = 交流" },
+    { key: "lamp", name: "ランプ(表示灯)", code: "PL / L", cat: "power", desc: "電気が来ると光る。運転中の表示などに使う。", tip: "丸の中の × = ランプ" },
+    { key: "motor", name: "電動機(モータ)", code: "M", cat: "power", desc: "電気で回る機械。", tip: "丸 + M。丸は回る機械や計器" },
+    { key: "meter", name: "電圧計", code: "V", cat: "power", desc: "電圧を測る計器。A なら電流計。", tip: "丸 + 測るものの文字" },
+    { key: "gnd", name: "接地(アース)", code: "E / GND", cat: "power", desc: "大地につなぐ。回路の 0 V の基準にも使う。", tip: "下へ短くなっていく 3 本線" },
+    { key: "chassis", name: "フレーム接続(シャーシ)", code: "FG", cat: "power", desc: "機械の金属の枠につなぐ。", tip: "斜めの線 = 金属の枠" },
+    { key: "sgnd", name: "信号グラウンド", code: "GND", cat: "power", desc: "電子回路で 0 V の基準を表すことが多い形。", tip: "下向きの三角(描き方は会社やツールで違う)" },
+  ];
+  return { FONT, head, arrow, draw, place, pin, standalone, wire, dot, terminal, label, between, LIST, BOX, G };
+})();
+
+let mode = "hold", opt = { hold: true, lock: true }, tripped = false;
+const pressed = {}, coil = {}, log = [];
+const tasks = { hold: { keep: false, stop: false, nohold: false }, lock: { fwd: false, block: false, short: false } };
+const TASK_LABEL = { keep: "離しても回り続ける", stop: "停止で止める", nohold: "保持の線を外して試す", fwd: "正転で回す", block: "正転中に逆転を押す", short: "インターロックなしで同時押し" };
+
+// ---- 回路の定義。c = 接点(n の 2 点を、閉じていればつなぐ)、load = コイル・ランプ(n から N へ)
+function build() {
+  const W = (n, ...pts) => ({ t: "w", n, pts }), parts = [];
+  if (mode === "hold") {
+    const h = opt.hold;
+    parts.push(
+      { t: "c", a: false, by: "PB1", n: ["L", "a"], x: 80, y: 80, name: "PB1", sub: "停止", pb: true },
+      { t: "c", a: true, by: "PB2", n: ["a", "b"], x: 200, y: 80, name: "PB2", sub: "起動", pb: true },
+      { t: "load", id: "MC", kind: "coil", n: "b", x: 440, y: 80, name: "MC" },
+      { t: "c", a: true, by: "MC", n: ["L", "r"], x: 200, y: 190, name: "MC" },
+      { t: "load", id: "RL", kind: "lamp", n: "r", x: 440, y: 190, name: "RL", sub: "運転", glow: "rgba(255,77,61,.35)" },
+      { t: "c", a: false, by: "MC", n: ["L", "g"], x: 200, y: 240, name: "MC" },
+      { t: "load", id: "GL", kind: "lamp", n: "g", x: 440, y: 240, name: "GL", sub: "停止", glow: "rgba(59,210,122,.35)" },
+      W("L", [40, 80], [80, 80]), W("a", [140, 80], [200, 80]), W("b", [260, 80], [440, 80]), W("N", [500, 80], [560, 80]),
+      W("L", [40, 190], [200, 190]), W("r", [260, 190], [440, 190]), W("N", [500, 190], [560, 190]),
+      W("L", [40, 240], [200, 240]), W("g", [260, 240], [440, 240]), W("N", [500, 240], [560, 240]),
+    );
+    if (h) parts.push({ t: "c", a: true, by: "MC", n: ["a", "b"], x: 200, y: 140, name: "MC", sub: "自己保持", tag: true },
+      W("a", [170, 80], [170, 140], [200, 140]), W("b", [260, 140], [300, 140], [300, 80]), { t: "dot", n: "a", x: 170, y: 80 }, { t: "dot", n: "b", x: 300, y: 80 });
+    else parts.push({ t: "ghost", pts: [[170, 80], [170, 140], [300, 140], [300, 80]], text: "自己保持の線を外した", x: 235, y: 158 });
+    return { view: [600, 278], bus: [50, 268], lines: [[80, "1"], [190, "2"], [240, "3"]], coils: ["MC"], parts,
+      buttons: [{ id: "PB1", label: "停止", color: "red" }, { id: "PB2", label: "起動", color: "green" }] };
+  }
+  const il = opt.lock;
+  parts.push(
+    { t: "c", a: false, by: "PB0", n: ["L", "s"], x: 70, y: 70, name: "PB0", sub: "停止", pb: true },
+    { t: "c", a: true, by: "PB1", n: ["s", "f"], x: 190, y: 70, name: "PB1", sub: "正転", pb: true },
+    { t: "c", a: true, by: "MC1", n: ["s", "f"], x: 190, y: 120, name: "MC1", sub: "保持" },
+    { t: "load", id: "MC1", kind: "coil", n: "f2", x: 450, y: 70, name: "MC1", sub: "正転" },
+    { t: "c", a: true, by: "PB2", n: ["s", "r"], x: 190, y: 200, name: "PB2", sub: "逆転", pb: true },
+    { t: "c", a: true, by: "MC2", n: ["s", "r"], x: 190, y: 250, name: "MC2", sub: "保持" },
+    { t: "load", id: "MC2", kind: "coil", n: "r2", x: 450, y: 200, name: "MC2", sub: "逆転" },
+    W("L", [40, 70], [70, 70]), W("s", [130, 70], [190, 70]), W("s", [160, 70], [160, 250], [190, 250]), W("s", [160, 120], [190, 120]), W("s", [160, 200], [190, 200]),
+    W("f", [250, 70], [330, 70]), W("f", [250, 120], [290, 120], [290, 70]), W("N", [510, 70], [560, 70]),
+    W("r", [250, 200], [330, 200]), W("r", [250, 250], [290, 250], [290, 200]), W("N", [510, 200], [560, 200]),
+    { t: "dot", n: "s", x: 160, y: 70 }, { t: "dot", n: "s", x: 160, y: 120 }, { t: "dot", n: "s", x: 160, y: 200 }, { t: "dot", n: "f", x: 290, y: 70 }, { t: "dot", n: "r", x: 290, y: 200 },
+  );
+  if (il) parts.push({ t: "c", a: false, by: "MC2", n: ["f", "f2"], x: 330, y: 70, name: "MC2", sub: "インターロック", tag: true }, W("f2", [390, 70], [450, 70]),
+    { t: "c", a: false, by: "MC1", n: ["r", "r2"], x: 330, y: 200, name: "MC1", sub: "インターロック", tag: true }, W("r2", [390, 200], [450, 200]));
+  else parts.push(W("f2", [330, 70], [450, 70]), W("r2", [330, 200], [450, 200]), { t: "link", n: ["f", "f2"] }, { t: "link", n: ["r", "r2"] },
+    { t: "ghost", pts: [], text: "インターロックなし", x: 360, y: 52 }, { t: "ghost", pts: [], text: "インターロックなし", x: 360, y: 182 });
+  return { view: [600, 278], bus: [40, 268], lines: [[70, "1"], [200, "2"]], coils: ["MC1", "MC2"], parts,
+    buttons: [{ id: "PB0", label: "停止", color: "red" }, { id: "PB1", label: "正転", color: "green" }, { id: "PB2", label: "逆転", color: "blue" }, { id: "BOTH", label: "正転と逆転を同時に", color: "both" }] };
+}
+let C = build();
+const actuated = (by) => (by.startsWith("PB") ? !!pressed[by] : !!coil[by]);
+const closed = (p) => (p.a ? actuated(p.by) : !actuated(p.by));
+function liveNodes() {
+  const live = new Set();
+  if (tripped) return live;
+  live.add("L");
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const p of C.parts) {
+      const link = p.t === "link" || (p.t === "c" && closed(p));
+      if (!link) continue;
+      const [x, y] = p.n;
+      if (live.has(x) !== live.has(y)) { live.add(x); live.add(y); grew = true; }
+    }
+  }
+  return live;
+}
+// コイルを 1 つずつ順に決める(同時に押したときは先に決まったほうが勝つ)
+function solve() {
+  for (let k = 0; k < 8; k++) {
+    let changed = false;
+    for (const id of C.coils) {
+      const load = C.parts.find((p) => p.t === "load" && p.id === id);
+      const on = liveNodes().has(load.n);
+      if (!!coil[id] !== on) { coil[id] = on; changed = true; }
+    }
+    if (!changed) break;
+  }
+  if (mode === "lock" && coil.MC1 && coil.MC2) { tripped = true; tasks.lock.short = true; coil.MC1 = coil.MC2 = false; addLog("MC1 と MC2 が同時に入った → 短絡、ブレーカが落ちた"); }
+}
+function addLog(t) { log.unshift(t); log.length = Math.min(log.length, 3); }
+
+function render() {
+  const live = liveNodes();
+  const [vw, vh] = C.view;
+  $("sch").setAttribute("viewBox", `0 0 ${vw} ${vh}`);
+  let s = "";
+  const top = C.bus[0] - 22;
+  s += `<g${live.has("L") ? ' class="live"' : ""}>${SYM.wire([[40, C.bus[0] - 10], [40, C.bus[1]]])}</g>` + SYM.wire([[560, C.bus[0] - 10], [560, C.bus[1]]]);
+  s += SYM.label(40, top, "P(+24 V)", { size: 12, weight: 700 }) + SYM.label(560, top, "N(0 V)", { size: 12, weight: 700 });
+  for (const [y, n] of C.lines) s += SYM.label(18, y, n, { size: 12, color: "var(--sub)" });
+  for (const p of C.parts) {
+    if (p.t === "w") s += `<g${live.has(p.n) ? ' class="live"' : ""}>${SYM.wire(p.pts)}</g>`;
+    else if (p.t === "dot") s += `<g${live.has(p.n) ? ' class="live"' : ""}>${SYM.dot(p.x, p.y)}</g>`;
+    else if (p.t === "ghost") s += `<g class="ghost">` + (p.pts.length ? SYM.wire(p.pts, ' stroke-dasharray="5 5"') : "") + SYM.label(p.x, p.y, p.text, { size: 11, color: "var(--mute)" }) + `</g>`;
+  }
+  for (const p of C.parts) {
+    if (p.t === "c") {
+      const on = actuated(p.by), hot = closed(p) && live.has(p.n[0]) && !tripped;
+      const kind = p.pb ? (p.a ? "pba" : "pbb") : p.a ? "swa" : "swb";
+      s += `<g${hot ? ' class="live"' : ""}>${SYM.place(kind, p.x, p.y, 0, { on })}</g>`;
+      const kindText = (p.a ? "a 接点" : "b 接点") + (p.sub ? "・" + p.sub : ""), ly = p.y + (p.a ? 18 : 24);
+      if (p.pb) s += SYM.label(p.x + 30, p.y - 40, p.name, { size: 12, weight: 700 }) + SYM.label(p.x + 30, ly, kindText, { size: 10, color: "var(--sub)" });
+      else s += `<text x="${p.x + 30}" y="${ly}" font-size="10" text-anchor="middle" dominant-baseline="central" fill="${p.tag ? "#B98900" : "var(--sub)"}"${p.tag ? ' font-weight="700"' : ""}><tspan font-size="12" font-weight="700" fill="var(--ink)">${p.name}</tspan> ${kindText}</text>`;
+      if (p.pb) s += `<rect class="pbhit" data-pb="${p.by}" x="${p.x}" y="${p.y - 34}" width="60" height="46"/>`;
+    } else if (p.t === "load") {
+      const on = live.has(p.n);
+      if (p.kind === "coil") s += (on ? `<rect x="${p.x + 18}" y="${p.y - 8}" width="24" height="16" fill="var(--amber-soft)"/>` : "") + `<g${on ? ' class="live"' : ""}>${SYM.place("coil", p.x, p.y)}</g>`;
+      else s += (on ? `<circle cx="${p.x + 30}" cy="${p.y}" r="17" fill="${p.glow}"/>` : "") + `<g${on ? ' class="live"' : ""}>${SYM.place("lamp", p.x, p.y)}</g>`;
+      s += SYM.label(p.x + 30, p.y - 22, p.name + (p.sub ? " " + p.sub : ""), { size: 12, weight: 700 });
+      if (p.kind === "coil") s += SYM.label(p.x + 30, p.y + 20, "コイル", { size: 10, color: "var(--sub)" });
+    }
+  }
+  $("sch").innerHTML = s;
+  // 操作盤の表示
+  const ind = $("ind");
+  if (mode === "hold") ind.innerHTML = `<div class="lampv"><i class="r${live.has("r") ? " on" : ""}"></i>RL 運転</div><div class="lampv"><i class="g${live.has("g") ? " on" : ""}"></i>GL 停止</div>`;
+  else {
+    const dir = coil.MC1 ? "cw" : coil.MC2 ? "ccw" : "";
+    ind.innerHTML = `<div class="motor"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#2B3542" stroke="#9FB0C4" stroke-width="2"/><g class="fan ${dir}"><path d="M20 20L20 6A14 14 0 0 1 32 13ZM20 20L32 27A14 14 0 0 1 20 34ZM20 20L8 27A14 14 0 0 1 8 13Z" fill="#C9D3DE" opacity=".85"/></g><circle cx="20" cy="20" r="3" fill="#fff"/></svg>`
+      + `<span>${tripped ? "停電" : coil.MC1 ? "正転 ↻" : coil.MC2 ? "逆転 ↺" : "停止"}</span></div>`;
+  }
+  document.body.classList.toggle("tripped", tripped);
+  document.body.dataset.coils = C.coils.map((c) => `${c}:${coil[c] ? 1 : 0}`).join(",");
+  $("opt").textContent = mode === "hold" ? (opt.hold ? "自己保持の線: あり" : "自己保持の線: なし") : opt.lock ? "インターロック: あり" : "インターロック: なし";
+  $("opt").setAttribute("aria-pressed", String(mode === "hold" ? opt.hold : opt.lock));
+  const tk = tasks[mode];
+  $("found").innerHTML = `<b>やってみよう ${Object.values(tk).filter(Boolean).length} / 3</b>` + Object.keys(tk).map((k) => `<span class="f${tk[k] ? " got" : ""}">${tk[k] ? "✓ " : ""}${TASK_LABEL[k]}</span>`).join("");
+  hint(live);
+  publish({ mode, opt });
+}
+function hint(live) {
+  const h = $("hint");
+  let cls = "hint", t;
+  if (tripped) { cls += " warn"; t = "<b>短絡!</b> 正転と逆転の MC が同時に入ると、モータへ行く線を入れかえる途中で電源どうしがぶつかる。インターロック(相手の b 接点)はこれを防ぐ安全の仕組み。"; }
+  else if (mode === "hold") {
+    if (coil.MC && pressed.PB2) t = "<b>PB2(起動)が閉じて、MC のコイルに電気が来た。</b>MC の a 接点(1 行目の保持・2 行目)が閉じ、b 接点(3 行目)が開く。";
+    else if (coil.MC) t = "<b>自己保持中。</b>PB2 から手を離しても、MC 自身の a 接点が PB2 の代わりに電気を通している。止めるには PB1(停止・b 接点)で輪を切る。";
+    else if (pressed.PB1) t = "<b>PB1 は b 接点。</b>押すと開いて MC への電気が切れ、保持も外れる。停止ボタンに b 接点を使うのは、線が切れても止まる側に倒れるから。";
+    else if (!opt.hold) t = "<b>保持の線がないと、PB2 を離したとたんに MC が切れる。</b>押している間だけ動く「寸動(インチング)」の回路になる。";
+    else t = "<b>PB2(起動)を押してみよう</b>(図のボタンか下の操作盤)。赤い線は「電気が来ている所」。いまは MC の b 接点を通って停止表示灯 GL だけが点いている。";
+  } else {
+    if (coil.MC1 && pressed.PB2 && opt.lock) { cls += " ok"; t = "<b>インターロックが効いている。</b>MC1 が入ると 2 行目の MC1 の b 接点が開くので、逆転を押しても MC2 には電気が来ない。"; }
+    else if (coil.MC2 && pressed.PB1 && opt.lock) { cls += " ok"; t = "<b>インターロックが効いている。</b>MC2 の b 接点(1 行目)が開いているので、正転は入らない。"; }
+    else if (coil.MC1 || coil.MC2) t = `<b>${coil.MC1 ? "正転" : "逆転"}中(自己保持)。</b>向きを変えるには、いったん PB0(停止)を押してから。${opt.lock ? "" : "インターロックがないので、いま反対のボタンを押すと…"}`;
+    else t = opt.lock ? "<b>正転か逆転を押してみよう。</b>1 行目の右の MC2 b 接点、2 行目の MC1 b 接点が「相手が入っていたら自分は入らない」見張り役。" : "<b>インターロックを外した。</b>「正転と逆転を同時に」を押してみよう(本物では絶対にやらないこと)。";
+  }
+  h.className = cls;
+  h.innerHTML = t + (log.length ? `<div class="log">${log.map((l) => "・" + l).join("<br>")}</div>` : "");
+}
+function press(id, v) {
+  if (tripped) return;
+  const before = { ...coil };
+  if (id === "BOTH") { pressed.PB1 = v; pressed.PB2 = v; } else pressed[id] = v;
+  solve();
+  const label = { PB0: "停止", PB1: mode === "hold" ? "停止" : "正転", PB2: mode === "hold" ? "起動" : "逆転", BOTH: "正転と逆転" }[id];
+  const changes = C.coils.filter((c) => !!before[c] !== !!coil[c]).map((c) => `${c} が${coil[c] ? "入った" : "切れた"}`);
+  if (!tripped) addLog(`${label}を${v ? "押した" : "離した"}` + (changes.length ? " → " + changes.join("、") : coil.MC && !v && id === "PB2" ? " → MC は入ったまま(自己保持)" : ""));
+  // やってみよう
+  if (mode === "hold") {
+    if (!v && id === "PB2" && coil.MC && opt.hold) tasks.hold.keep = true;
+    if (v && id === "PB1" && before.MC && !coil.MC) tasks.hold.stop = true;
+    if (!v && id === "PB2" && before.MC && !coil.MC && !opt.hold) tasks.hold.nohold = true;
+  } else {
+    if (coil.MC1) tasks.lock.fwd = true;
+    if (v && id === "PB2" && coil.MC1 && opt.lock) tasks.lock.block = true;
+  }
+  render();
+}
+function setupButtons() {
+  $("pbs").innerHTML = C.buttons.map((b) => `<button class="pb ${b.color}" id="b-${b.id}" aria-label="${b.label}${b.id !== "BOTH" ? "(" + b.id + ")" : ""}">${b.label}${b.id !== "BOTH" ? `<small>${b.id}</small>` : ""}</button>`).join("");
+  for (const b of C.buttons) momentary($("b-" + b.id), (v) => press(b.id, v));
+}
+// 図の中の押しボタンも押せる
+let svgDown = null;
+$("sch").addEventListener("pointerdown", (e) => { const r = e.target.closest(".pbhit"); if (!r) return; e.preventDefault(); svgDown = r.dataset.pb; $("sch").setPointerCapture(e.pointerId); press(svgDown, true); });
+for (const t of ["pointerup", "pointercancel"]) $("sch").addEventListener(t, () => { if (svgDown) { const id = svgDown; svgDown = null; press(id, false); } });
+function reset() { for (const k of Object.keys(pressed)) pressed[k] = false; for (const k of Object.keys(coil)) coil[k] = false; log.length = 0; C = build(); solve(); setupButtons(); render(); }
+segment($("mode"), (v) => { mode = v; tripped = false; reset(); });
+$("opt").addEventListener("click", () => { opt[mode] = !opt[mode]; tripped = false; reset(); });
+$("reset").addEventListener("click", () => { tripped = false; reset(); });
+onRestore((s) => {
+  if (s.mode === "hold" || s.mode === "lock") { mode = s.mode; setSeg($("mode"), mode); }
+  if (s.opt) for (const k of ["hold", "lock"]) if (typeof s.opt[k] === "boolean") opt[k] = s.opt[k];
+  reset();
+});
+reset(); ready();
+</script></body></html>

@@ -36,6 +36,7 @@ npx tauri dev
 
 - `decks/neural-network/deck.json`: ニューラルネットワークの解説(15 枚、動く図解つき)
 - `decks/sd-lora/sd-lora.deck`: Stable Diffusion と LoRA の解説(5 枚)
+- `decks/electrical-drawings/electrical-drawings.deck`: 電気図面(回路図・シーケンス図)の読み方の教材(ノート形式 42 ページ、さわれる図 5 つ。「読む」でめくれます)
 
 起動時に開く資料は、環境変数 `DECK_STUDIO_OPEN`(資料の絶対パス)でも指定できます。
 
